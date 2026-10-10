@@ -120,6 +120,12 @@ self-contained file each (figures inlined as base64):
 - Tangle blocks are labelled =→ path= (relative to the project root, the
   directory above =notes/=); =:run= blocks =▶ run (where)=; the example block
   after a run, or a =#+RESULTS:=, =output=.
+- A figure can have frames: =#+ATTR_HTML: :data-frames /abs/b.png /abs/c.png
+  :data-labels first|second|third= on its image (no quotes; labels joined
+  by =|=, the image itself first).  The frames are inlined with the image,
+  and =j= / =k= (or the buttons under it) step the figure nearest the middle
+  of the screen.  Print and the static image show the first frame, so make
+  it the one the text relies on.
 - Outputs are folded by default, under a line giving their length
   ("39 lines"); a click opens them.  They open by themselves for printing,
   when they carry a review comment, and when a comment is opened from the

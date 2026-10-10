@@ -14,6 +14,7 @@ import re
 import sys
 
 IMG = re.compile(r'(<img\b[^>]*?\bsrc=")([^"]+)(")', re.I)
+FRAMES = re.compile(r'(<img\b[^>]*?\bdata-frames=")([^"]+)(")', re.I)
 
 
 def main(path):
@@ -42,6 +43,18 @@ def main(path):
         return f'{m.group(1)}data:{mime};base64,{b64}{m.group(3)}'
 
     out = IMG.sub(repl, html)
+
+    def repl_frames(m):
+        if m.group(2).startswith('data:'):
+            return m.group(0)
+        uris = []
+        for src in m.group(2).split():
+            r = IMG.match(f'<img src="{src}"')
+            u = repl(r)
+            uris.append(u[len('<img src="'):-1])
+        return f'{m.group(1)}{"|".join(uris)}{m.group(3)}'
+
+    out = FRAMES.sub(repl_frames, out)
     with open(path, 'w', encoding='utf-8') as f:
         f.write(out)
 

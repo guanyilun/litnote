@@ -139,6 +139,11 @@ for every note, new sections and rewrites alike.
     included report, and re-read after each re-run.
   - Don't leave a figure's explanation to a separate "how to read"
     paragraph; the encoding belongs in the caption.
+  - When one figure varies with a parameter, make it one figure with
+    frames instead of many figures: `#+ATTR_HTML: :data-frames /abs/b.png
+    /abs/c.png :data-labels a = 0|a = 1|a = 2` (no quotes; labels joined by
+    `|`, the image itself first). The reader steps through them with j / k.
+    The caption says what the frames are.
 - **Explain each equation in words**: what it computes and what its symbols
   are, next to the code that implements it (see the rules below).
 - **Precise, not chatty.** No hype and no filler. Keep the spelling the note

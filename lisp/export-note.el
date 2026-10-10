@@ -67,6 +67,10 @@
   figcaption { text-align: left; font-size: .9rem; line-height: 1.45; color: #444;
                margin: .5rem auto 0; max-width: 46rem; }
   figcaption .figure-number { font-weight: bold; color: #222; }
+  .frame-bar { margin: .35rem 0 0; font: .8rem/1.3 'DejaVu Sans Mono', monospace; color: #555; }
+  .frame-bar button { font: inherit; padding: .1rem .5rem; margin: 0 .5rem; cursor: pointer;
+      border: 1px solid #ccc; border-radius: 4px; background: #fff; color: #333; }
+  .frame-bar button:hover { background: #f0f0f0; }
   img { max-width: 100%; height: auto; border: 1px solid #e5e5e5;
         border-radius: 4px; background: #fff; }
   table { border-collapse: collapse; font-size: .92rem; margin: 1.2rem 0; }
@@ -315,6 +319,56 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!queued) { queued = true; requestAnimationFrame(spy); }
   }, { passive: true });
   spy();
+});
+
+// Figures with frames: an <img data-frames='a.png b.png'> has extra frames
+// (inlined by inline-images.py as data URIs joined by |) and optional
+// data-labels, one per frame, the image itself first.  j / k step the
+// figure nearest the middle of the screen; the buttons under it too.
+document.addEventListener('DOMContentLoaded', function () {
+  var figs = Array.prototype.map.call(document.querySelectorAll('img[data-frames]'), function (img) {
+    var raw = img.getAttribute('data-frames');
+    var srcs = raw.indexOf('data:') === 0 ? raw.split('|') : raw.split(' ').filter(Boolean);
+    srcs.unshift(img.getAttribute('src'));
+    var labels = (img.getAttribute('data-labels') || '').split('|');
+    var bar = document.createElement('div');
+    bar.className = 'frame-bar';
+    bar.innerHTML = '<button type=button class=frame-prev>&#8249; k</button>' +
+      '<span class=frame-label></span><button type=button class=frame-next>j &#8250;</button>';
+    img.insertAdjacentElement('afterend', bar);
+    var f = { img: img, srcs: srcs, labels: labels, i: 0, bar: bar };
+    f.show = function (i) {
+      f.i = (i + f.srcs.length) % f.srcs.length;
+      f.img.src = f.srcs[f.i];
+      bar.querySelector('.frame-label').textContent = 'frame ' + (f.i + 1) + ' of ' + f.srcs.length +
+        (f.labels[f.i] ? ': ' + f.labels[f.i] : '');
+    };
+    bar.querySelector('.frame-prev').onclick = function () { f.show(f.i - 1); };
+    bar.querySelector('.frame-next').onclick = function () { f.show(f.i + 1); };
+    f.show(0);
+    return f;
+  });
+  if (!figs.length) return;
+  function current() {
+    var mid = window.innerHeight / 2, best = null, bd = Infinity;
+    figs.forEach(function (f) {
+      var r = f.img.getBoundingClientRect();
+      if (r.bottom < 0 || r.top > window.innerHeight) return;
+      var d = Math.abs((r.top + r.bottom) / 2 - mid);
+      if (d < bd) { bd = d; best = f; }
+    });
+    return best;
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    var t = e.target;
+    if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+    if (e.key !== 'j' && e.key !== 'k') return;
+    var f = current();
+    if (!f) return;
+    f.show(f.i + (e.key === 'j' ? 1 : -1));
+    e.preventDefault();
+  });
 });
 </script>")
 
