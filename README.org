@@ -95,7 +95,10 @@ four lines in =template/Makefile=.
 - *Runs read as cells.*  A run is a =#+begin_src sh :run <where> :eval no=
   block holding the exact command, which writes a report file, followed by
   =#+INCLUDE: "/abs/path/report.txt" example=.  Never paste output by hand.
-  Figures: =[[file:...png]]= after the run that saved them.
+  Figures: =[[file:...png]]= after the run that saved them, with a
+  =#+NAME: fig:x= and a =#+CAPTION:= written like a paper's: what is plotted
+  (data, axes, units, colours, markers) and how to read it.  The text cites
+  them as =Figure [[fig:x]]=.
 - *One review document.*  =notes/<name>_analysis.org= includes the others
   with =#+INCLUDE: "x.org" :lines "N-" :minlevel 2=, where N skips that
   note's header lines.  Each include gets a level-1 heading above it (the

@@ -64,6 +64,9 @@
   pre.example { background: #fbfaf7; border: 1px solid #e6e2d8;
                 border-left: 3px solid #c8a45c; color: #333; }
   figure, p > img { margin: 1.6rem 0; text-align: center; }
+  figcaption { text-align: left; font-size: .9rem; line-height: 1.45; color: #444;
+               margin: .5rem auto 0; max-width: 46rem; }
+  figcaption .figure-number { font-weight: bold; color: #222; }
   img { max-width: 100%; height: auto; border: 1px solid #e5e5e5;
         border-radius: 4px; background: #fff; }
   table { border-collapse: collapse; font-size: .92rem; margin: 1.2rem 0; }
@@ -162,6 +165,8 @@
     pre.example { background: #1a1d21; border-color: #2c3037; color: #c8c8c8; }
     th, td { border-color: #333; } th { background: #24272c; }
     img { border-color: #333; }
+    figcaption { color: #bbb; }
+    figcaption .figure-number { color: #ddd; }
     #postamble { border-top-color: #2c3037; color: #8a8a8a; }
     #table-of-contents { background: #1a1d21; border-right-color: #2c3037; }
     #table-of-contents a { color: #b8b8b8; }

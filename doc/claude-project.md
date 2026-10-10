@@ -58,8 +58,13 @@ Every change to a tangled step goes around this loop:
 
    #+INCLUDE: "/abs/project/out/fit/summary.txt" example
    ```
-   Figures go in as `[[file:/abs/project/out/fit/residuals.png]]` after
-   the run that saved them. The export labels these cells `→ path`,
+   Figures go in after the run that saved them, each with a name and a
+   caption (see "Figures" under "Writing the prose"):
+   ```org
+   #+NAME: fig:residuals
+   #+CAPTION: /Residuals of the fit./  ...
+   [[file:/abs/project/out/fit/residuals.png]]
+   ``` The export labels these cells `→ path`,
    `▶ run (where)` and `output`, so the page reads as an executed notebook.
 5. **Write the prose from the output.** Every number in the text comes from
    an included report; re-read the report after each re-run and update
@@ -118,6 +123,17 @@ for every note, new sections and rewrites alike.
   third of them").
 - **Bullets for parallel items only,** each one or two readable sentences,
   not a list of clauses. Use `/Label./` bullets sparingly.
+- **Figures are explained like in a paper.** Every figure has a `#+NAME:
+  fig:x` and a `#+CAPTION:`; org numbers them, and the text cites them as
+  `Figure [[fig:x]]`, which renders as "Figure 3". The caption starts with a
+  short italic title (`/What it is./`), then says precisely what is plotted:
+  which data and selection, each panel, the axes with units and scales, what
+  colours, markers, sizes and lines mean. It ends with how to interpret it:
+  what to look at and what it shows. Write it from the plotting code and a
+  look at the image, not from memory. Every figure is cited in the text, and
+  the results paragraph that rests on it says so. Don't leave a figure's
+  explanation to a separate "how to read" paragraph; that belongs in the
+  caption.
 - **Explain each equation in words**: what it computes and what its symbols
   are, next to the code that implements it (see the rules below).
 - **Precise, not chatty.** No hype and no filler. Keep the spelling the note
