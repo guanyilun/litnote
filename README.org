@@ -96,9 +96,10 @@ four lines in =template/Makefile=.
   block holding the exact command, which writes a report file, followed by
   =#+INCLUDE: "/abs/path/report.txt" example=.  Never paste output by hand.
   Figures: =[[file:...png]]= after the run that saved them, with a
-  =#+NAME: fig:x= and a =#+CAPTION:= written like a paper's: what is plotted
-  (data, axes, units, colours, markers) and how to read it.  The text cites
-  them as =Figure [[fig:x]]=.
+  =#+NAME: fig:x= and a =#+CAPTION:= written like a paper's.  The caption
+  only describes what is plotted (data, selection, axes, units, colours,
+  markers), which the code fixes; what the figure shows goes in the results
+  text, which cites it as =Figure [[fig:x]]= and is backed by the report.
 - *One review document.*  =notes/<name>_analysis.org= includes the others
   with =#+INCLUDE: "x.org" :lines "N-" :minlevel 2=, where N skips that
   note's header lines.  Each include gets a level-1 heading above it (the
