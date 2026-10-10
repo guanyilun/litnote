@@ -11,7 +11,9 @@ so out loud.
 Two kinds of block are skipped, because for them showing nothing is the point
 rather than a fault: `:eval no`, an illustration of a command rather than a run
 of it, and `:results silent`, a block that does its work in the session and has
-nothing to say about it.  A check with known false positives stops being read,
+nothing to say about it.  Either can be on the block or file-wide, in a
+`#+PROPERTY: header-args` (or `header-args:LANG`) line; a block's own `:eval`
+or `:results` overrides the file's.  A check with known false positives stops being read,
 so anything that legitimately produces no output should carry one of those.
 
 Exit status is always 0.  This reports, it does not block: exporting a note
@@ -25,6 +27,8 @@ BEGIN = re.compile(r'^\s*#\+begin_src\b(.*)$', re.I)
 END = re.compile(r'^\s*#\+end_src\s*$', re.I)
 RESULTS = re.compile(r'^\s*#\+RESULTS(\[[^]]*\])?:', re.I)
 QUIET = re.compile(r':eval\s+(no|never)\b|:results\s[^:]*\b(silent|none)\b', re.I)
+SETS = re.compile(r':(eval|results)\b', re.I)
+PROPERTY = re.compile(r'^\s*#\+PROPERTY:\s*header-args(?::(\S+))?\s+(.*)$', re.I)
 HEADING = re.compile(r'^\*+\s')
 LINK = re.compile(r'^\s*\[\[file:([^]]+)\]\]\s*$')
 
@@ -38,9 +42,27 @@ def block_name(lines, begin):
     return m.group(1) if m else None
 
 
+def file_quiet(lines):
+    """{language or None: True} for the file-wide header-args that make blocks quiet."""
+    out = {}
+    for line in lines:
+        m = PROPERTY.match(line)
+        if m:
+            out[m.group(1)] = bool(QUIET.search(m.group(2)))
+    return out
+
+
+def is_quiet(args, defaults):
+    if SETS.search(args):
+        return bool(QUIET.search(args))
+    lang = args.split()[0] if args.split() else None
+    return defaults.get(lang, defaults.get(None, False))
+
+
 def empty_blocks(path):
     """(line number, heading) for each block whose results are missing/empty."""
     lines = open(path).read().split('\n')
+    defaults = file_quiet(lines)
     out, heading = [], '(top)'
     i = 0
     while i < len(lines):
@@ -50,7 +72,7 @@ def empty_blocks(path):
         if not m:
             i += 1
             continue
-        start, quiet = i + 1, bool(QUIET.search(m.group(1)))
+        start, quiet = i + 1, is_quiet(m.group(1), defaults)
         while i < len(lines) and not END.match(lines[i]):
             i += 1
         i += 1
