@@ -116,6 +116,10 @@ self-contained file each (figures inlined as base64):
 - Tangle blocks are labelled =→ path= (relative to the project root, the
   directory above =notes/=); =:run= blocks =▶ run (where)=; the example block
   after a run, or a =#+RESULTS:=, =output=.
+- Outputs are folded by default, under a line giving their length
+  ("39 lines"); a click opens them.  They open by themselves for printing,
+  when they carry a review comment, and when a comment is opened from the
+  Comments panel.
 - Pygments highlighting (python, sh, yaml, org, json, elisp, make).  The
   token markup depends on the pygments version, so build under the project's
   environment for reproducible HTML.

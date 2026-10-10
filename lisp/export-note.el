@@ -140,6 +140,11 @@
   .cell-label.output { color: #8a6d1f; margin-top: .2rem; }
   .run-cell pre.src { background: #f1f8f3; border-color: #cfe6d7; }
   .output-cell pre.example { border-left: 3px solid #d9c27a; }
+  /* Outputs are folded by default; the label stays visible above them. */
+  details.output-cell > summary { cursor: pointer; margin: .65rem 0 .2rem;
+      font: .78rem/1.3 'DejaVu Sans Mono', monospace; color: #8a6d1f; }
+  details.output-cell > summary:hover { text-decoration: underline; }
+  details.output-cell[open] > summary { margin-bottom: 0; }
 
   @media (prefers-color-scheme: dark) {
     .cell-label { color: #8a8a8a; }
@@ -148,6 +153,7 @@
     .cell-label.output { color: #d2b460; }
     .run-cell pre.src { background: #18231c; border-color: #2c4235; }
     .output-cell pre.example { border-left-color: #7d6a2f; }
+    details.output-cell > summary { color: #d2b460; }
     body { background: #16181c; color: #dcdcdc; }
     h3 { color: #c8c8c8; }
     a { color: #7aa7e0; }
@@ -239,6 +245,18 @@ document.addEventListener('DOMContentLoaded', function () {
       if (headOf(c)) c.classList.toggle('folded', anyOpen);
     });
     if (!anyOpen) window.scrollTo({ top: 0 });
+  });
+
+  // Folded outputs are opened for printing, and folded back afterwards.
+  var printed = [];
+  window.addEventListener('beforeprint', function () {
+    printed = Array.prototype.filter.call(document.querySelectorAll('details.output-cell'),
+                                          function (d) { return !d.open; });
+    printed.forEach(function (d) { d.open = true; });
+  });
+  window.addEventListener('afterprint', function () {
+    printed.forEach(function (d) { d.open = false; });
+    printed = [];
   });
 
   // A target inside a folded section has to be revealed, or the link goes
@@ -342,7 +360,11 @@ document.addEventListener('DOMContentLoaded', function () {
 (defun note/output-label (orig el contents info)
   (let ((html (funcall orig el contents info)))
     (if (note/output-p el info)
-        (concat (note/label "output" "output") "<div class=\"output-cell\">" html "</div>")
+        (let ((n (length (split-string (or (org-element-property :value el) "") "\n" t))))
+          (concat (note/label "output" "output")
+                  "<details class=\"output-cell\"><summary>"
+                  (format "%d line%s" n (if (= n 1) "" "s"))
+                  "</summary>" html "</details>"))
       html)))
 (advice-add 'org-html-example-block :around #'note/output-label)
 (advice-add 'org-html-fixed-width :around #'note/output-label)
