@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Start a literate project from the template.
+#
+#   litnote-new DIR [TITLE]
+#
+# DIR's basename becomes the note prefix (DIR/notes/<name>.org and
+# <name>_analysis.org, the review document that includes the others).
+
+set -euo pipefail
+[ $# -ge 1 ] || { sed -n '2,7p' "$0"; exit 2; }
+LITNOTE=$(cd "$(dirname "$(realpath "$0")")/.." && pwd)
+mkdir -p "$1"
+PROJ=$(cd "$1" && pwd)
+NAME=$(basename "$PROJ")
+TITLE=${2:-$NAME}
+DATE=$(date +%F)
+[ -e "$PROJ/notes" ] && { echo "litnote-new: $PROJ/notes already exists" >&2; exit 1; }
+mkdir -p "$PROJ"/{notes,bin,src,scripts,out}
+fill() { sed -e "s#@NAME@#$NAME#g" -e "s#@TITLE@#$TITLE#g" -e "s#@DATE@#$DATE#g" -e "s#@PROJ@#$PROJ#g" -e "s#@LITNOTE@#$LITNOTE#g" "$1" > "$2"; }
+fill "$LITNOTE/template/Makefile"               "$PROJ/Makefile"
+fill "$LITNOTE/template/readme.org"             "$PROJ/readme.org"
+fill "$LITNOTE/template/notes/NAME.org"         "$PROJ/notes/$NAME.org"
+fill "$LITNOTE/template/notes/NAME_analysis.org" "$PROJ/notes/${NAME}_analysis.org"
+[ -e "$PROJ/CLAUDE.md" ] || fill "$LITNOTE/template/CLAUDE.md" "$PROJ/CLAUDE.md"
+ln -s "$LITNOTE/bin/note" "$PROJ/bin/note"
+[ -e "$PROJ/.gitignore" ] || cp "$LITNOTE/template/gitignore" "$PROJ/.gitignore"
+echo "created $PROJ (litnote $(git -C "$LITNOTE" describe --always --dirty 2>/dev/null))"
+echo "  make tangle            write the example's script"
+echo "  mkdir -p out/example && python bin/example.py a b > out/example/example.txt"
+echo "  make                   render out/notes/*.html"
+echo "  bin/note start         notes daemon"

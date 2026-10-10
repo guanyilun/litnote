@@ -1,0 +1,34 @@
+#+TITLE: @TITLE@
+#+DATE: @DATE@
+#+OPTIONS: toc:2 num:t ^:{} tex:t
+#+PROPERTY: header-args :mkdirp yes :comments link
+#+PROPERTY: header-args:python :session @NAME@ :results output
+
+* What this note is for
+
+* A cheap step, as a notebook cell
+
+Evaluated in the note's python session (=bin/note run=); the output is
+saved under the block.  Every block gets a =#+name:=.
+
+#+name: setup
+#+begin_src python
+PROJ = '@PROJ@'
+print(PROJ)
+#+end_src
+
+* An expensive step, as a tangled script
+
+The reasoning goes here, in prose; the block below stays bare.  It is
+tangled (=make tangle=), run outside Emacs, and its output included.
+
+#+begin_src python :tangle @PROJ@/bin/example.py :eval no
+import sys
+print(sys.argv[1:])
+#+end_src
+
+#+begin_src sh :run login :eval no
+mkdir -p out/example && python bin/example.py a b > out/example/example.txt
+#+end_src
+
+#+INCLUDE: "@PROJ@/out/example/example.txt" example

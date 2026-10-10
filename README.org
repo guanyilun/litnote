@@ -1,0 +1,188 @@
+#+title: litnote: literate org notes for any analysis project
+#+OPTIONS: toc:2 num:nil ^:{}
+
+Shared tooling for analyses written as org notes.  Cheap steps are
+notebook cells evaluated in a live python session, with their output in
+=#+RESULTS:=.  Expensive steps (batch jobs, long runs) are tangled to
+scripts, run outside Emacs, and their output files included back.  Either
+way the export reads as an executed notebook, with a comment layer for
+review.  Style after the
+[[https://www.howardism.org/Technical/Emacs/literate-programming-tutorial.html][howardism literate programming tutorial]].
+
+* How the pieces fit together
+
+A project is a directory with =notes/*.org=, a four-line =Makefile= that
+includes =mk/litnote.mk=, and whatever the notes tangle and the runs write.
+Cheap steps are notebook cells (see "The notes daemon" below): edit, run
+in the session with =bin/note=, and the result sits under the block.
+Expensive steps go around this loop:
+
+#+begin_example
+   notes/x.org ──make tangle──▶ bin/ src/ scripts/ ──run (shell, queue)──▶ out/…/report.txt, *.png
+        ▲                                                                        │
+        │                                                  #+INCLUDE / [[file:]] │
+        │                                                                        ▼
+   edit the note ◀──comments (.org)── review in browser ◀──make── out/notes/*.html
+#+end_example
+
+1. *Write* a step in a note: a paragraph saying what and why, then the code
+   in a bare block with =:tangle /abs/path=.
+2. *Tangle* (=make tangle=) and *run* the script outside Emacs; it writes a
+   report file (and figures) under =out/=.
+3. *Show* the run in the note: a =:run= cell with the exact command, then
+   =#+INCLUDE:= of the report.  Write the prose from that output.
+4. *Render* (=make=): every note becomes =out/notes/<note>.html=, labelled
+   as notebook cells (=→ path=, =▶ run=, =output=), and the review document
+   =notes/<name>_analysis.org= puts all notes in one page.
+5. *Check* (=make check-tangled=): every file in =CODE= is tangled from a
+   note and none was edited by hand.  Since review happens on the notes,
+   this is also the review-coverage report: an untangled file is code the
+   reviewer never saw.
+6. *Review*: open the page, leave comments in the right margin, and use
+   /Copy open/ or /Export .org/.  The comments go back as edits to the
+   notes (by you, or by Claude given the exported file), and the loop
+   starts again.
+
+The rules that keep this honest (code only in notes, explanations only in
+prose, outputs only by include, notes self-contained) are under
+Conventions below.
+
+* Starting a project
+
+#+begin_src sh
+~/software/litnote/bin/litnote-new ~/work/myproject "Some title"
+cd ~/work/myproject && make tangle
+mkdir -p out/example && python bin/example.py a b > out/example/example.txt
+make
+#+end_src
+
+This writes =Makefile=, =readme.org=, =CLAUDE.md=, =notes/<name>.org= (an
+example of each kind of block) and =notes/<name>_analysis.org= (the review
+document), and links =bin/note=.  The middle line is the example note's
+run cell; =make= fails on its =#+INCLUDE:= until that report exists.  An
+existing project adopts the tooling by replacing its Makefile rules with the
+four lines in =template/Makefile=.
+
+* Conventions
+
+- *The note is the reference.*  Every file that contributes to the analysis
+  is the =:tangle= target of a block in =notes/*.org=; =make check-tangled=
+  fails otherwise, and also catches files edited by hand after tangling
+  (it restores them and reports).  =CODE= in the Makefile lists the globs
+  that count as analysis code.
+- *Explanations in prose, not in code.*  No explanatory comments or
+  docstrings in tangled blocks; the paragraph above the block says why.
+  Only what the code needs functionally (e.g. a =__doc__= used by argparse).
+- *Header.*  =#+PROPERTY: header-args :mkdirp yes :comments link :eval no=,
+  absolute =:tangle= paths.  Use =:comments no= on blocks whose language
+  Emacs =-Q= has no comment syntax for (YAML), or the link line corrupts the
+  file.
+- *Runs read as cells.*  A run is a =#+begin_src sh :run <where> :eval no=
+  block holding the exact command, which writes a report file, followed by
+  =#+INCLUDE: "/abs/path/report.txt" example=.  Never paste output by hand.
+  Figures: =[[file:...png]]= after the run that saved them.
+- *One review document.*  =notes/<name>_analysis.org= includes the others
+  with =#+INCLUDE: "x.org" :lines "N-" :minlevel 2=, where N skips that
+  note's header lines.  Set =REVIEW= in the Makefile so it rebuilds when
+  any included note changes.
+- *Self-contained.*  No provenance pointers to other analysis folders or to
+  colleagues' working files; say what each input is and show the command
+  that reproduces it.  Scientific references are fine.
+- *Equations* as =\( \)= / =\[ \]= with =^:{}= in =#+OPTIONS=.
+
+* What the export does
+
+=make= renders every note and =readme.org= to =out/notes/*.html=, one
+self-contained file each (figures inlined as base64):
+
+- Export never runs babel (=org-export-use-babel nil=); it shows what is in
+  the buffer or included from files.
+- Tangle blocks are labelled =→ path= (relative to the project root, the
+  directory above =notes/=); =:run= blocks =▶ run (where)=; the example block
+  after a run, or a =#+RESULTS:=, =output=.
+- Pygments highlighting (python, sh, yaml, org, json, elisp, make).  The
+  token markup depends on the pygments version, so build under the project's
+  environment for reproducible HTML.
+- MathJax 3.
+- Before each export =check-results.py= warns about evaluated blocks with no
+  output, =check-excerpts.py= about quoted output that no longer matches,
+  =check-rebinds.py= about session variables rebound between blocks.
+
+* Review comments
+
+Every exported page carries a comment layer: hover in the right margin of
+any paragraph, block or figure and click =+=.  Comments are kept in the
+browser (localStorage, per page) and anchored by section title, block kind
+and a text snippet, so they survive re-rendering; a comment whose text was
+rewritten shows as "anchor not found".  The Comments button opens the panel:
+- *Copy open* puts the open comments on the clipboard as org TODOs, then
+  offers to mark them resolved;
+- *Export .org* downloads all of them (TODO/DONE) and *Import* reads such a
+  file back.
+
+* Working with Claude
+
+=doc/claude-project.md= is the same workflow written as instructions for an
+agent: the loop, the rules, how to act on exported review comments, the
+pitfalls, and what "done" means.  Each project's =CLAUDE.md= imports it
+with =@/path/to/litnote/doc/claude-project.md= and adds only what is
+specific to the project (environment, job submission, data), so changing
+the guide here changes it for every project.  =CLAUDE.md= at the top of
+this repo is for work on litnote itself.
+
+When Claude Code runs on another machine and reaches the project over ssh,
+the import cannot be followed; point that machine's =CLAUDE.md= at the
+project's, to be read over ssh at the start of a session.
+
+* The notes daemon
+
+For cheap steps, the note is a notebook: python blocks evaluated in one
+live session, held by an Emacs daemon so it survives between commands:
+
+#+begin_src sh
+bin/note start              # emacs --daemon=note-<project>
+bin/note open notes/x.org
+bin/note stale              # blocks changed since the last run, and empty results
+bin/note run                # re-run from the first changed block
+bin/note py 'print(x)'      # evaluate in the note's interpreter
+bin/note stop
+#+end_src
+
+=lisp/babel-setup.el= makes python tracebacks show up in =#+RESULTS:=
+instead of an empty result.
+
+* Installing
+
+Clone the repo once per machine; projects use the checkout in place, so
+any location works (the examples here use =~/software/litnote=):
+
+#+begin_src sh
+git clone <repo-url> ~/software/litnote
+#+end_src
+
+=make= needs Emacs with org (tested with Emacs 27.2 / org 9.4 and Emacs 31.1) and a
+=python3= with pygments; build under the project's environment, since the
+pygments version changes the highlighted HTML.  The notes daemon needs
+=emacsclient=.  Rendered pages load MathJax from a CDN.
+
+To update, =git pull= in the checkout; every project picks up the change
+on its next =make=.
+
+* Layout
+
+| path                          | what                                                  |
+|-------------------------------+-------------------------------------------------------|
+| =mk/litnote.mk=               | make rules: html, check, tangle, check-tangled        |
+| =lisp/export-note.el=         | batch org → html, cell labels, CSS, MathJax           |
+| =lisp/review-comments.html=   | the comment layer (CSS + JS) injected into every page |
+| =lisp/note-session.el=        | daemon side of =bin/note=                             |
+| =lisp/babel-setup.el=         | visible python tracebacks                             |
+| =py/=                         | html post-processing and the checks                   |
+| =bin/note=, =bin/litnote-new= | daemon wrapper, project scaffolding                   |
+| =template/=                   | files =litnote-new= fills in                          |
+| =doc/claude-project.md=       | the workflow as instructions for Claude               |
+| =CLAUDE.md=                   | instructions for changing litnote itself              |
+
+Projects use the checkout in place, so a change here reaches every project
+on its next =make=.  =make litnote-version= prints the commit a project
+built with.

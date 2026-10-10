@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# Talk to the note daemon.
+#
+# Run from anywhere inside a project (a directory with notes/).  The daemon is
+# named note-<project dir>; override with NOTE_SERVER.
+#
+#   bin/note start                       start the daemon for this project
+#   bin/note open notes/x.org
+#   bin/note stale                       what would re-run, and what has no output
+#   bin/note run                         re-run from the first changed block down
+#   bin/note section "The fit"      one subtree, trusting nothing above matters
+#   bin/note from "The fit"         that subtree and everything after it
+#   bin/note block setup three-chains    named blocks only
+#   bin/note py 'print(df.shape)'  a one-off in the note's live interpreter
+#   bin/note status
+#   bin/note stop
+#
+# emacsclient --eval prints the return value as a lisp datum, so a multi-line
+# report arrives as one line full of backslash-n.  This unescapes it, which is
+# the whole reason the wrapper exists.
+
+set -euo pipefail
+
+LITNOTE=$(cd "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/.." && pwd)
+HERE=$PWD
+while [ "$HERE" != / ] && [ ! -d "$HERE/notes" ]; do HERE=$(dirname "$HERE"); done
+[ -d "$HERE/notes" ] || { echo "note: no notes/ directory above $PWD" >&2; exit 2; }
+SERVER=${NOTE_SERVER:-note-$(basename "$HERE")}
+
+ev() { emacsclient -s "$SERVER" --eval "$1"; }
+
+# Turn the printed lisp string back into text.  Anything that is not a string
+# (an integer, a symbol) passes through untouched.
+unquote() {
+    python3 -c '
+import ast, sys
+s = sys.stdin.read().strip()
+try:
+    v = ast.literal_eval(s)
+except (ValueError, SyntaxError):
+    v = s
+print(v if isinstance(v, str) else s)'
+}
+
+# Quote a shell string as a lisp string literal.
+lisp_str() { printf '%s' "$1" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))'; }
+
+cmd=${1:-status}; shift || true
+
+case "$cmd" in
+    open)    ev "(ns/open $(lisp_str "$1"))" | unquote ;;
+    stale)   ev '(ns/stale)'     | unquote ;;
+    run)     ev '(ns/run-stale)' | unquote ;;
+    run-all) ev '(ns/run-all)'   | unquote ;;
+    status)  ev '(ns/status)'    | unquote ;;
+    from)    ev "(ns/run-from $(lisp_str "$1"))" | unquote ;;
+    py)      ev "(ns/py $(lisp_str "$1"))" | unquote ;;
+    py-file) ev "(ns/py-file $(lisp_str "$(cd "$HERE" && realpath "$1")"))" | unquote ;;
+    section|sections)
+        args=''
+        for h in "$@"; do args+=" $(lisp_str "$h")"; done
+        ev "(ns/sections$args)" | unquote ;;
+    block|blocks)
+        args=''
+        for n in "$@"; do args+=" $(lisp_str "$n")"; done
+        ev "(ns/block$args)" | unquote ;;
+    start)   cd "$HERE" && emacs --daemon="$SERVER" -l "$LITNOTE/lisp/note-session.el" && echo "started $SERVER" ;;
+    stop)    ev '(kill-emacs)' >/dev/null 2>&1; echo "stopped $SERVER" ;;
+    reload)  ev "(load \"$LITNOTE/lisp/note-session.el\")" >/dev/null && echo 'reloaded' ;;
+    *)       sed -n '2,24p' "${BASH_SOURCE[0]}"; exit 2 ;;
+esac

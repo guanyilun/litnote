@@ -1,0 +1,13 @@
+#+title: @NAME@: @TITLE@
+#+OPTIONS: toc:2 num:nil ^:{}
+
+* Where things stand (@DATE@)
+
+* Notes
+
+| note                        | what it is                                   |
+|-----------------------------+----------------------------------------------|
+| [[file:notes/@NAME@_analysis.org]] | the review document: includes every other note |
+| [[file:notes/@NAME@.org]]          | the analysis                                   |
+
+* Open items

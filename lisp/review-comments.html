@@ -1,0 +1,311 @@
+<style>
+  .rc-host { position: relative; }
+  .rc-add { position: absolute; right: -1.75rem; top: .15rem; width: 1.35rem; height: 1.35rem;
+      padding: 0; border: 1px solid #d8d8d8; border-radius: 50%; background: #fff; color: #888;
+      font: bold .95rem/1.2rem sans-serif; cursor: pointer; opacity: 0; transition: opacity .12s; z-index: 5; }
+  .rc-host:hover > .rc-add, .rc-add:focus { opacity: 1; }
+  .rc-add:hover { color: #b8860b; border-color: #d9c27a; }
+  .rc-has { box-shadow: 4px 0 0 #f1c40f; }
+  .rc-marker { position: absolute; right: -1.75rem; top: .15rem; width: 1.35rem; height: 1.35rem;
+      padding: 0; border: 0; border-radius: 50%; background: #f1c40f; color: #5a4500;
+      font: bold .72rem/1.35rem sans-serif; cursor: pointer; z-index: 6; }
+  .rc-box { margin: .4rem 0 .8rem; padding: .55rem .65rem; background: #fffbea;
+      border: 1px solid #ecd98b; border-radius: 6px; font: .9rem/1.4 sans-serif; }
+  .rc-box textarea { width: 100%; min-height: 4.5rem; box-sizing: border-box; font: .9rem/1.4 sans-serif;
+      padding: .35rem; border: 1px solid #d9c27a; border-radius: 4px; background: #fff; color: #222; }
+  .rc-box .rc-row { display: flex; gap: .4rem; margin-top: .35rem; align-items: center; }
+  .rc-box .rc-where { flex: 1; color: #8a7a3a; font-size: .75rem; overflow: hidden;
+      text-overflow: ellipsis; white-space: nowrap; }
+  .rc-btn { font: .8rem sans-serif; padding: .25rem .6rem; border: 1px solid #ccc; border-radius: 4px;
+      background: #fff; color: #333; cursor: pointer; }
+  .rc-btn.rc-primary { background: #f1c40f; border-color: #d4ac0d; color: #3d2f00; }
+  #rc-toggle { position: fixed; top: .55rem; right: .55rem; z-index: 40; height: 2.1rem; padding: 0 .7rem;
+      font: .85rem sans-serif; color: #5a4500; background: #fff8d6; border: 1px solid #ecd98b;
+      border-radius: 5px; cursor: pointer; }
+  #rc-panel { position: fixed; top: 3rem; right: .55rem; z-index: 40; width: 25rem; max-width: calc(100vw - 1.1rem);
+      max-height: calc(100vh - 4rem); overflow: auto; display: none; padding: .7rem; background: #fff;
+      border: 1px solid #ddd; border-radius: 6px; box-shadow: 0 4px 18px rgba(0,0,0,.15);
+      font: .85rem/1.4 sans-serif; color: #222; }
+  #rc-panel.open { display: block; }
+  #rc-panel .rc-item { padding: .45rem 0; border-top: 1px solid #eee; cursor: pointer; }
+  #rc-panel .rc-item:hover { background: #fffbea; }
+  #rc-panel .rc-sec { color: #8a7a3a; font-size: .75rem; }
+  #rc-panel .rc-text { white-space: pre-wrap; }
+  #rc-panel .rc-lost { color: #c0392b; font-size: .75rem; }
+  #rc-panel .rc-item.rc-done { opacity: .5; }
+  #rc-panel .rc-item.rc-done .rc-text { text-decoration: line-through; }
+  #rc-panel .rc-item .rc-mini { float: right; font-size: .72rem; padding: .1rem .45rem; margin-left: .4rem; }
+  #rc-panel label { font-size: .78rem; color: #666; display: flex; gap: .3rem; align-items: center; }
+  #rc-panel .rc-flash { color: #1f7a4d; font-size: .78rem; min-height: 1em; }
+  #rc-panel .rc-actions { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: .5rem; }
+  @media print { .rc-add, .rc-marker, #rc-toggle, #rc-panel { display: none !important; } }
+  @media (prefers-color-scheme: dark) {
+    .rc-add { background: #24272c; border-color: #3a3f47; color: #999; }
+    .rc-box { background: #2a2615; border-color: #5c5020; }
+    .rc-box textarea { background: #1c1f24; color: #ddd; border-color: #5c5020; }
+    .rc-btn { background: #24272c; border-color: #3a3f47; color: #ccc; }
+    #rc-toggle { background: #2a2615; border-color: #5c5020; color: #e8d27a; }
+    #rc-panel { background: #1c1f24; border-color: #333; color: #ddd; }
+    #rc-panel .rc-item { border-top-color: #333; }
+    #rc-panel .rc-item:hover { background: #2a2615; }
+  }
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var content = document.getElementById('content');
+  if (!content) return;
+  var PAGE = decodeURIComponent(location.pathname.split('/').pop()).replace(/\.html$/, '') || 'note';
+  var KEY = 'review-comments:' + PAGE;
+  var SEL = 'p, li, table, pre, figure, .figure, img';
+
+  function load() { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) { return []; } }
+  function save(c) { try { localStorage.setItem(KEY, JSON.stringify(c)); } catch (e) {} }
+  var comments = load();
+
+  function clean(s) { return (s || '').replace(/\s+/g, ' ').trim(); }
+  function heading(el) {
+    for (var d = el.parentElement; d && d !== content; d = d.parentElement) {
+      if (d.classList && Array.prototype.some.call(d.classList, function (c) { return /^outline-\d$/.test(c); })) {
+        var h = d.querySelector(':scope > h2, :scope > h3, :scope > h4, :scope > h5, :scope > h6');
+        if (h) return clean(h.textContent).replace(/^[\d.]+\s+/, '');
+      }
+    }
+    return clean((document.querySelector('h1.title') || {}).textContent || PAGE);
+  }
+  function kind(el) {
+    if (el.matches('pre.src')) return 'code';
+    if (el.matches('pre')) return 'output';
+    if (el.matches('figure, .figure, img')) return 'figure';
+    if (el.matches('table')) return 'table';
+    if (el.matches('li')) return 'item';
+    return 'text';
+  }
+  function label(el) {
+    var prev = el.parentElement && el.parentElement.matches('.run-cell, .output-cell, .org-src-container')
+      ? el.parentElement.previousElementSibling : el.previousElementSibling;
+    for (var i = 0; i < 3 && prev; i++, prev = prev.previousElementSibling) {
+      if (prev.classList && prev.classList.contains('cell-label')) return clean(prev.textContent);
+    }
+    return '';
+  }
+  function snippet(el) {
+    if (el.matches('figure, .figure, img')) {
+      var img = el.matches('img') ? el : el.querySelector('img');
+      var cap = el.matches('figure, .figure') ? clean(el.textContent) : '';
+      return cap || (img && (img.getAttribute('alt') || '').slice(0, 80)) || 'figure';
+    }
+    return clean(el.textContent).slice(0, 140);
+  }
+
+  // Commentable elements: outermost matches only, outside the TOC and our own UI.
+  var els = Array.prototype.filter.call(content.querySelectorAll(SEL), function (el) {
+    if (el.closest('#table-of-contents, #rc-panel, .rc-box, .cell-label')) return false;
+    if (el.matches('img') && el.closest('figure, .figure')) return false;
+    if (el.matches('p') && el.closest('li, table, figure, .figure')) return false;
+    if (el.matches('li') && el.closest('table')) return false;
+    if (el.matches('li') && el.querySelector('li')) return false;
+    if (!clean(el.textContent) && !el.matches('figure, .figure, img')) return false;
+    return true;
+  });
+  var perSection = {};
+  var anchors = els.map(function (el) {
+    var sec = heading(el), k = kind(el);
+    perSection[sec] = (perSection[sec] || 0) + 1;
+    return { el: el, section: sec, kind: k, n: perSection[sec], label: label(el), snippet: snippet(el) };
+  });
+
+  function find(c) {
+    var best = null;
+    anchors.forEach(function (a) {
+      if (a.kind !== c.kind) return;
+      var sec = (c.section || '').replace(/^[\d.]+\s+/, '');
+      var score = (a.snippet === c.snippet ? 4 : 0) + (a.section === sec ? 3 : 0)
+                + (a.n === c.n ? 1 : 0) + (a.label === c.label ? 1 : 0);
+      if (a.section !== sec && a.snippet !== c.snippet) return;
+      if (score >= 4 && (!best || score > best.score)) best = { a: a, score: score };
+    });
+    return best && best.a;
+  }
+
+  function host(a) {
+    var h = a.el.matches('pre') && a.el.parentElement.matches('.run-cell, .output-cell, .org-src-container')
+      ? a.el.parentElement : a.el;
+    h.classList.add('rc-host');
+    return h;
+  }
+
+  function openBox(a, existing) {
+    var h = host(a);
+    var old = h.nextElementSibling;
+    if (old && old.classList.contains('rc-box')) { old.remove(); return; }
+    var box = document.createElement('div');
+    box.className = 'rc-box';
+    box.innerHTML = '<textarea placeholder="Comment for the review…"></textarea>' +
+      '<div class="rc-row"><span class="rc-where"></span>' +
+      (existing ? '<button class="rc-btn rc-del">Delete</button><button class="rc-btn rc-res">' +
+                  (existing.resolved ? 'Reopen' : 'Resolve') + '</button>' : '') +
+      '<button class="rc-btn rc-cancel">Cancel</button><button class="rc-btn rc-primary rc-save">Save</button></div>';
+    box.querySelector('.rc-where').textContent = a.section + ' · ' + a.kind + ' ' + a.n + (a.label ? ' · ' + a.label : '');
+    var ta = box.querySelector('textarea');
+    if (existing) ta.value = existing.text;
+    h.insertAdjacentElement('afterend', box);
+    ta.focus();
+    box.querySelector('.rc-cancel').onclick = function () { box.remove(); };
+    box.querySelector('.rc-save').onclick = function () {
+      var t = ta.value.trim();
+      if (existing) { if (t) { existing.text = t; existing.updated = new Date().toISOString(); } else remove(existing); }
+      else if (t) comments.push({ section: a.section, kind: a.kind, n: a.n, label: a.label, snippet: a.snippet,
+                                   text: t, created: new Date().toISOString() });
+      save(comments); box.remove(); render();
+    };
+    var res = box.querySelector('.rc-res');
+    if (res) res.onclick = function () { setResolved(existing, !existing.resolved); box.remove(); };
+    var del = box.querySelector('.rc-del');
+    if (del) del.onclick = function () { remove(existing); save(comments); box.remove(); render(); };
+  }
+  function remove(c) { comments = comments.filter(function (x) { return x !== c; }); }
+  function setResolved(c, on) {
+    if (on) c.resolved = new Date().toISOString(); else delete c.resolved;
+    save(comments); render();
+  }
+  var showResolved = false;
+
+  anchors.forEach(function (a) {
+    var h = host(a);
+    if (h.querySelector(':scope > .rc-add')) return;
+    var b = document.createElement('button');
+    b.className = 'rc-add'; b.type = 'button'; b.textContent = '+'; b.title = 'Add a review comment';
+    b.onclick = function (e) { e.stopPropagation(); openBox(a, null); };
+    h.appendChild(b);
+  });
+
+  var toggle = document.createElement('button');
+  toggle.id = 'rc-toggle'; toggle.type = 'button';
+  var panel = document.createElement('div');
+  panel.id = 'rc-panel';
+  document.body.appendChild(toggle); document.body.appendChild(panel);
+  toggle.onclick = function () { panel.classList.toggle('open'); };
+
+  function render() {
+    document.querySelectorAll('.rc-marker').forEach(function (m) { m.remove(); });
+    document.querySelectorAll('.rc-has').forEach(function (m) { m.classList.remove('rc-has'); });
+    var count = {};
+    comments.forEach(function (c) {
+      var a = find(c); c._a = a;
+      if (!a || c.resolved) return;
+      var h = host(a); h.classList.add('rc-has');
+      count[anchors.indexOf(a)] = (count[anchors.indexOf(a)] || 0) + 1;
+    });
+    Object.keys(count).forEach(function (i) {
+      var a = anchors[i], h = host(a);
+      var m = document.createElement('button');
+      m.className = 'rc-marker'; m.type = 'button'; m.textContent = count[i];
+      m.title = 'Show comments';
+      m.onclick = function (e) {
+        e.stopPropagation();
+        comments.filter(function (c) { return c._a === a && !c.resolved; }).forEach(function (c) { openBox(a, c); });
+      };
+      h.appendChild(m);
+    });
+    var open = comments.filter(function (c) { return !c.resolved; });
+    toggle.textContent = 'Comments (' + open.length + (comments.length > open.length ? ' open' : '') + ')';
+    panel.innerHTML = '<div class="rc-actions"><button class="rc-btn rc-primary rc-copy">Copy open</button>' +
+      '<button class="rc-btn rc-export">Export .org</button><button class="rc-btn rc-import">Import</button>' +
+      '<button class="rc-btn rc-clear">Clear all</button></div>' +
+      '<div class="rc-actions"><label><input type="checkbox" class="rc-showres"' + (showResolved ? ' checked' : '') +
+      '> show resolved (' + (comments.length - open.length) + ')</label></div><div class="rc-flash"></div>' +
+      (comments.length ? '' : '<div class="rc-sec">No comments yet. Hover a paragraph, code block, output or figure and click + in the right margin.</div>');
+    comments.forEach(function (c) {
+      if (c.resolved && !showResolved) return;
+      var it = document.createElement('div');
+      it.className = 'rc-item' + (c.resolved ? ' rc-done' : '');
+      it.innerHTML = '<button class="rc-btn rc-mini"></button><div class="rc-sec"></div><div class="rc-text"></div>';
+      it.querySelector('.rc-sec').textContent = c.section + ' \u00b7 ' + c.kind + ' ' + c.n;
+      it.querySelector('.rc-text').textContent = c.text;
+      var mb = it.querySelector('.rc-mini');
+      mb.textContent = c.resolved ? 'Reopen' : 'Resolve';
+      mb.onclick = function (e) { e.stopPropagation(); setResolved(c, !c.resolved); };
+      if (!c._a) { var l = document.createElement('div'); l.className = 'rc-lost';
+        l.textContent = 'anchor not found on this version of the page'; it.appendChild(l); }
+      it.onclick = function () { if (c._a) host(c._a).scrollIntoView({ block: 'center' }); };
+      panel.appendChild(it);
+    });
+    panel.querySelector('.rc-copy').onclick = copyOpen;
+    panel.querySelector('.rc-export').onclick = exportOrg;
+    panel.querySelector('.rc-import').onclick = importOrg;
+    panel.querySelector('.rc-showres').onchange = function (e) { showResolved = e.target.checked; render(); };
+    panel.querySelector('.rc-clear').onclick = function () {
+      if (confirm('Delete all ' + comments.length + ' comments on this page? Export first if you need them.')) {
+        comments = []; save(comments); render(); }
+    };
+  }
+
+  function orgText(list) {
+    var out = ['#+TITLE: Review comments on ' + PAGE, '#+DATE: ' + new Date().toISOString().slice(0, 10), ''];
+    list.forEach(function (c, i) {
+      out.push('* ' + (c.resolved ? 'DONE ' : 'TODO ') + (i + 1) + '. ' + c.section);
+      out.push(':PROPERTIES:');
+      out.push(':PAGE: ' + PAGE);
+      out.push(':KIND: ' + c.kind + ' ' + c.n);
+      if (c.label) out.push(':LABEL: ' + c.label);
+      out.push(':CREATED: ' + c.created);
+      if (c.resolved) out.push(':RESOLVED: ' + c.resolved);
+      out.push(':END:');
+      out.push('#+begin_quote'); out.push(c.snippet); out.push('#+end_quote');
+      out.push(''); out.push(c.text); out.push('');
+    });
+    out.push('# rc-json: ' + JSON.stringify(list.map(function (c) {
+      return { section: c.section, kind: c.kind, n: c.n, label: c.label, snippet: c.snippet,
+               text: c.text, created: c.created, updated: c.updated, resolved: c.resolved }; })));
+    return out.join('\n') + '\n';
+  }
+
+  function flash(msg) { var f = panel.querySelector('.rc-flash'); if (f) f.textContent = msg; }
+  function copyText(t) {
+    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(t);
+    return new Promise(function (ok, fail) {
+      var ta = document.createElement('textarea'); ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy') ? ok() : fail(new Error('copy refused')); } catch (e) { fail(e); }
+      ta.remove();
+    });
+  }
+  function copyOpen() {
+    var open = comments.filter(function (c) { return !c.resolved; });
+    if (!open.length) { flash('No open comments to copy.'); return; }
+    copyText(orgText(open)).then(function () {
+      flash('Copied ' + open.length + ' open comment' + (open.length > 1 ? 's' : '') + ' to the clipboard.');
+      if (confirm('Copied ' + open.length + ' open comments. Mark them as resolved?')) {
+        var now = new Date().toISOString();
+        open.forEach(function (c) { c.resolved = now; });
+        save(comments); render();
+        flash('Copied and resolved ' + open.length + '.');
+      }
+    }, function () { flash('Copy failed; use Export .org instead.'); });
+  }
+
+  function exportOrg() {
+    var blob = new Blob([orgText(comments)], { type: 'text/plain' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'review_comments_' + PAGE + '.org';
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+  function importOrg() {
+    var inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.org,.txt';
+    inp.onchange = function () {
+      var f = inp.files[0]; if (!f) return;
+      f.text().then(function (s) {
+        var m = s.match(/^# rc-json: (.*)$/m);
+        if (!m) { alert('No comments found in that file.'); return; }
+        var add = JSON.parse(m[1]), have = {};
+        comments.forEach(function (c) { have[c.created + c.text] = 1; });
+        add.forEach(function (c) { if (!have[c.created + c.text]) comments.push(c); });
+        save(comments); render();
+      });
+    };
+    inp.click();
+  }
+
+  render();
+});
+</script>
