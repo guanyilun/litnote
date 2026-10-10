@@ -98,7 +98,8 @@ four lines in =template/Makefile=.
   Figures: =[[file:...png]]= after the run that saved them.
 - *One review document.*  =notes/<name>_analysis.org= includes the others
   with =#+INCLUDE: "x.org" :lines "N-" :minlevel 2=, where N skips that
-  note's header lines.  Set =REVIEW= in the Makefile so it rebuilds when
+  note's header lines.  Each include gets a level-1 heading above it (the
+  note's title), since =:minlevel 2= puts the note's sections one level down.  Set =REVIEW= in the Makefile so it rebuilds when
   any included note changes.
 - *Self-contained.*  No provenance pointers to other analysis folders or to
   colleagues' working files; say what each input is and show the command
