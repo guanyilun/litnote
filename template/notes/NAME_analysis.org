@@ -12,4 +12,6 @@ commands that were run (on a login node or through slurm), and the =output=
 block under each is the file that run wrote.  Hover in the right margin to
 leave a comment; the Comments button copies or exports them as org.
 
+* @TITLE@
+
 #+INCLUDE: "@NAME@.org" :lines "6-" :minlevel 2

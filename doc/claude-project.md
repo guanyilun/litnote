@@ -144,7 +144,10 @@ paragraph it was left on.
 
 - **Includes.** `#+INCLUDE: "x.org" :lines "N-" :minlevel 2` in the review
   document skips the first N-1 lines of each note (its header). When you add
-  or remove header lines in a note, fix N.
+  or remove header lines in a note, fix N. `:minlevel 2` makes the note's
+  sections level 2, so each include needs its own level-1 heading (the
+  note's title) right above it; without one, every note ends up inside the
+  section before it ("How to read this").
 - **YAML blocks.** `:comments link` (the file-wide default) needs a comment
   syntax Emacs `-Q` doesn't have for YAML. Put `:comments no` on YAML blocks,
   or the first line of the file is garbage.
