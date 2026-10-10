@@ -299,14 +299,21 @@ This trusts you that nothing above HEADING matters.  When you are not sure,
       (format "ran %d block(s) under %S" (length indices) heading))))
 
 (defun ns/session-buffer ()
-  "The live python comint buffer for the note, or nil."
+  "The live python comint buffer for the note, or nil.
+The session is that of the first block that has one, so a shell block
+at the top of the note (with no session) does not hide it."
   (with-current-buffer (ns/--buffer)
-    (let ((name (cdr (assq :session
-                           (nth 2 (save-excursion
-                                    (goto-char (point-min))
-                                    (org-babel-next-src-block)
-                                    (org-babel-get-src-block-info t)))))))
-      (get-buffer (format "*%s*" name)))))
+    (let ((name (save-excursion
+                  (goto-char (point-min))
+                  (let (found)
+                    (while (and (not found)
+                                (ignore-errors (org-babel-next-src-block) t))
+                      (let ((s (cdr (assq :session
+                                          (nth 2 (org-babel-get-src-block-info t))))))
+                        (when (and s (not (equal s "none")))
+                          (setq found s))))
+                    found))))
+      (and name (get-buffer (format "*%s*" name))))))
 
 (defun ns/py (code)
   "Evaluate CODE in the note's existing python session; return its stdout."
