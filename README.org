@@ -74,6 +74,12 @@ four lines in =template/Makefile=.
 - *Explanations in prose, not in code.*  No explanatory comments or
   docstrings in tangled blocks; the paragraph above the block says why.
   Only what the code needs functionally (e.g. a =__doc__= used by argparse).
+- *Plain prose.*  Write a note the way you would explain the analysis to a
+  colleague: what we want to know and why, what we did, what we found.
+  Short sentences with one idea each, no chains of semicolons and nested
+  parentheses, the takeaway first in a results paragraph, terms defined in
+  plain words, and numbers said in words when that helps ("about a
+  third").  The full guide is "Writing the prose" in =doc/claude-project.md=.
 - *Explanations interleaved with the code.*  A file is tangled from several
   blocks with the same =:tangle= path, one per natural piece (a function or
   a few related ones); org concatenates them in order.  Above each block,

@@ -99,6 +99,33 @@ bin/note py 'print(x)'      # a one-off in the same interpreter
   tangled script and include its output instead; don't leave the session
   busy for minutes, and never submit batch jobs from a block.
 
+## Writing the prose
+
+A note is read by a person who wants to follow the reasoning, so write it
+the way you would explain the analysis to a colleague. This is the default
+for every note, new sections and rewrites alike.
+
+- **Think it through in order.** Say what we want to know and why, then
+  what we did, then what we found. Short paragraphs.
+- **Plain words, short sentences.** One idea per sentence. Don't chain
+  clauses with semicolons, colons and parentheses; at most one
+  parenthetical in a sentence, and preferably none. Avoid stacked
+  qualifiers such as "(the X of the Y, see "Z")".
+- **Lead with the point.** In a results paragraph, the first sentence is
+  the takeaway in plain words; the numbers that support it come after.
+- **Define terms in plain words** the first time a section uses them.
+- **Say what a number means** when it isn't obvious ("about 1 in 40", "a
+  third of them").
+- **Bullets for parallel items only,** each one or two readable sentences,
+  not a list of clauses. Use `/Label./` bullets sparingly.
+- **Explain each equation in words**: what it computes and what its symbols
+  are, next to the code that implements it (see the rules below).
+- **Precise, not chatty.** No hype and no filler. Keep the spelling the note
+  already uses.
+
+A quick test: read a paragraph aloud. If you have to stop to find out what
+a clause refers to, split it.
+
 ## Rules
 
 - **Explanations go in the prose, not in the code.** Don't write
@@ -173,7 +200,8 @@ paragraph it was left on.
 
 ## Done means
 
-- the note explains the change in prose, and its code blocks are bare;
+- the note explains the change in plain prose ("Writing the prose"), and its
+  code blocks are bare;
 - the run cell and included output match what was actually run;
 - `make` succeeds and `make check-tangled` reports all in sync;
 - `readme.org` open items are updated if something was closed or raised;
