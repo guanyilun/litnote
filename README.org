@@ -26,7 +26,8 @@ Expensive steps go around this loop:
 #+end_example
 
 1. *Write* a step in a note: a paragraph saying what and why, then the code
-   in a bare block with =:tangle /abs/path=.
+   in bare blocks with =:tangle /abs/path=, split at its natural pieces with
+   the explanation of each (its equation, its choices) right above it.
 2. *Tangle* (=make tangle=) and *run* the script outside Emacs; it writes a
    report file (and figures) under =out/=.
 3. *Show* the run in the note: a =:run= cell with the exact command, then
@@ -52,7 +53,7 @@ Conventions below.
 #+begin_src sh
 ~/software/litnote/bin/litnote-new ~/work/myproject "Some title"
 cd ~/work/myproject && make tangle
-mkdir -p out/example && python bin/example.py a b > out/example/example.txt
+mkdir -p out/example && python bin/example.py 1 2 > out/example/example.txt
 make
 #+end_src
 
@@ -73,6 +74,14 @@ four lines in =template/Makefile=.
 - *Explanations in prose, not in code.*  No explanatory comments or
   docstrings in tangled blocks; the paragraph above the block says why.
   Only what the code needs functionally (e.g. a =__doc__= used by argparse).
+- *Explanations interleaved with the code.*  A file is tangled from several
+  blocks with the same =:tangle= path, one per natural piece (a function or
+  a few related ones); org concatenates them in order.  Above each block,
+  the prose it needs: the equation it implements, with its symbols tied to
+  the names in the code, the units, and the choices it makes.  A reader
+  checks each block against the text right above it, not against a long
+  paragraph far up the page.  =:shebang= goes on the first block only;
+  plumbing (arguments, files) can stay in one block.
 - *Header.*  =#+PROPERTY: header-args :mkdirp yes :comments link :eval no=,
   absolute =:tangle= paths.  Use =:comments no= on blocks whose language
   Emacs =-Q= has no comment syntax for (YAML), or the link line corrupts the

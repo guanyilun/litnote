@@ -19,16 +19,32 @@ print(PROJ)
 
 * An expensive step, as a tangled script
 
-The reasoning goes here, in prose; the block below stays bare.  It is
-tangled (=make tangle=), run outside Emacs, and its output included.
+The reasoning goes here, in prose; the blocks stay bare.  A script is
+tangled (=make tangle=), run outside Emacs, and its output included.  It is
+written in pieces, all tangled to the same file in order, each with its
+explanation right above it.
+
+The mean of the arguments, read as numbers: \( \bar{x} = \frac{1}{n} \sum_{i} x_{i} \).
 
 #+begin_src python :tangle @PROJ@/bin/example.py :eval no
 import sys
-print(sys.argv[1:])
+
+
+def mean(xs):
+    return sum(xs) / len(xs)
+#+end_src
+
+The script prints the arguments and their mean.
+
+#+begin_src python :tangle @PROJ@/bin/example.py :eval no
+
+
+xs = [float(a) for a in sys.argv[1:]]
+print(xs, mean(xs))
 #+end_src
 
 #+begin_src sh :run login :eval no
-mkdir -p out/example && python bin/example.py a b > out/example/example.txt
+mkdir -p out/example && python bin/example.py 1 2 > out/example/example.txt
 #+end_src
 
 #+INCLUDE: "@PROJ@/out/example/example.txt" example

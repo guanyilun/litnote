@@ -36,10 +36,14 @@ tangle one script for its batch job and include that job's report.
 Every change to a tangled step goes around this loop:
 
 1. **Write the note.** A paragraph saying what the step does and why, then
-   the code block, bare, with an absolute `:tangle` path:
+   the code, bare, with an absolute `:tangle` path:
    ```org
    #+begin_src python :tangle /abs/project/bin/fit.py
    ```
+   A script with more than one idea in it is several blocks tangled to the
+   same file, in order, with the explanation of each piece (its equation,
+   the choice it makes) in the prose right above it; see "Explanations
+   interleaved with the code" below.
 2. **Tangle.** `make tangle` writes every block to its file.
 3. **Run outside Emacs.** Run the tangled script in a shell or through the
    batch queue, and have it write its output to a report file under
@@ -101,6 +105,17 @@ bin/note py 'print(x)'      # a one-off in the same interpreter
   explanatory comments or docstrings in tangled blocks; the paragraph above
   the block explains. Keep only what the code needs to work (e.g. a
   `__doc__` that argparse prints).
+- **Explanations interleaved with the code.** Don't put one paragraph above a
+  long block and leave the reader to match it to the code. Split a file into
+  blocks at its natural pieces (a function or a few related ones), all with
+  the same `:tangle` path; org concatenates them in order, so the tangled
+  file is the same. Before each block, the prose that block needs: the
+  equation it implements, in the note's math (`\begin{equation*}`), with its
+  symbols tied to the names in the code; the units; the choice it makes and
+  why. A reader should be able to check each block against the text right
+  above it. Put `:shebang` on the first block of a script only. Pure
+  plumbing (argument parsing, reading and writing files) can stay in one
+  block with a sentence on what it reads and writes.
 - **Never paste output by hand.** Outputs enter by `#+INCLUDE` of a file a
   run wrote, so they can't drift from the code.
 - **Self-contained.** Don't point to other analysis folders or colleagues'
