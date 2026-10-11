@@ -234,8 +234,12 @@ paragraph it was left on.
       <<model-fit>>
   #+end_src
   ```
-  The method blocks take no `:tangle`; the page shows the outline with its
-  references and each method where it is explained.
+  The method blocks take no `:tangle`. The page labels each one
+  `⟨name⟩ in → path`, links every `<<name>>` in the outline to it, and links
+  the name in its label back to the outline. The same pattern writes any
+  step outline-first: `<<load the group>>`, `<<fit each weighting>>`, each
+  filled in under its own paragraph. Name the pieces as prose; that is the
+  outline the reader sees.
 - **Emacs in scripts.** `emacs`/`make` read stdin. Inside `ssh host bash -s <
   script`, redirect them from `/dev/null` or they swallow the rest of the
   script.

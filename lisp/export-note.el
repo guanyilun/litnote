@@ -145,6 +145,9 @@
       border-radius: 3px; }
   .cell-label.run { color: #1f7a4d; font-weight: bold; }
   .cell-label.output { color: #8a6d1f; margin-top: .2rem; }
+  .cell-label.chunk a { color: #2a5d8f; text-decoration: none; }
+  .cell-label.chunk a:hover { text-decoration: underline; }
+  pre.src a.chunk-ref { color: inherit; text-decoration: underline dotted; }
   .run-cell pre.src { background: #f1f8f3; border-color: #cfe6d7; }
   .output-cell pre.example { border-left: 3px solid #d9c27a; }
   /* Outputs are folded by default; the label stays visible above them. */
@@ -158,6 +161,7 @@
     .cell-label code { background: #1f2a36; color: #8cb4e0; }
     .cell-label.run { color: #6fc596; }
     .cell-label.output { color: #d2b460; }
+    .cell-label.chunk a { color: #8cb4e0; }
     .run-cell pre.src { background: #18231c; border-color: #2c4235; }
     .output-cell pre.example { border-left-color: #7d6a2f; }
     details.output-cell > summary { color: #d2b460; }
@@ -372,8 +376,12 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>")
 
-;; Notebook reading of the export.  Three kinds of block, each labelled:
+;; Notebook reading of the export.  Four kinds of block, each labelled:
 ;;   - a block with :tangle FILE is code that becomes FILE ("-> FILE");
+;;   - a named block that a :noweb outline includes as <<name>> is a piece of
+;;     that outline's file ("<name> in -> FILE"); py/highlight-html.py turns
+;;     each <<name>> in the outline into a link to it, and the name in the
+;;     label links back;
 ;;   - a block with :run is a cell that was executed, as a script, a slurm job
 ;;     or a shell command -- its body is the command ("run");
 ;;   - an example / fixed-width block right after a :run cell, or saved as the
@@ -389,6 +397,41 @@ document.addEventListener('DOMContentLoaded', function () {
          (abs (expand-file-name target dir)))
     (if (string-prefix-p root abs) (file-relative-name abs root) target)))
 
+(defun note/slug (name)
+  (string-trim (replace-regexp-in-string "[^a-z0-9]+" "-" (downcase name)) "-+" "-+"))
+
+(defvar note/chunks-cache nil)
+
+(defun note/chunks (info)
+  "Alist of the blocks that :noweb outlines include: (NAME . FILE).
+FILE is the :tangle target the outline, or the chain of outlines, ends in."
+  (let ((tree (plist-get info :parse-tree)))
+    (unless (eq (car note/chunks-cache) tree)
+      (let (parent)
+        (org-element-map tree 'src-block
+          (lambda (b)
+            (let* ((params (org-element-property :parameters b))
+                   (noweb (note/param params "noweb"))
+                   (target (note/param params "tangle"))
+                   (file (and (stringp target) (not (member target '("no" "yes"))) target))
+                   (name (org-element-property :name b))
+                   (value (org-element-property :value b))
+                   (start 0))
+              (when (and (stringp noweb) (not (equal noweb "no")))
+                (while (string-match "<<\\([^\n<>]+?\\)>>" value start)
+                  (push (cons (match-string 1 value) (if file (list 'file file) (list 'chunk name)))
+                        parent)
+                  (setq start (match-end 0)))))))
+        (setq note/chunks-cache
+              (cons tree
+                    (mapcar (lambda (p)
+                              (let ((up (cdr p)) (n 0))
+                                (while (and (eq (car up) 'chunk) (< n 20))
+                                  (setq up (cdr (assoc (cadr up) parent)) n (1+ n)))
+                                (cons (car p) (and (eq (car up) 'file) (cadr up)))))
+                            parent)))))
+    (cdr note/chunks-cache)))
+
 (defun note/label (cls text)
   (format "<div class=\"cell-label %s\">%s</div>\n" cls text))
 
@@ -402,6 +445,16 @@ document.addEventListener('DOMContentLoaded', function () {
       (concat (note/label "tangle" (format "&#8594; <code>%s</code>"
                                            (org-html-encode-plain-text (note/relpath target))))
               html))
+     ((assoc (org-element-property :name src-block) (note/chunks info))
+      (let* ((name (org-element-property :name src-block))
+             (file (cdr (assoc name (note/chunks info))))
+             (slug (note/slug name)))
+        (concat (format "<div class=\"cell-label chunk\" id=\"chunk-%s\"><a href=\"#use-%s\">&#10216;%s&#10217;</a>%s</div>\n"
+                        slug slug (org-html-encode-plain-text name)
+                        (if file (format " in &#8594; <code>%s</code>"
+                                         (org-html-encode-plain-text (note/relpath file)))
+                          ""))
+                html)))
      (run
       (concat (note/label "run" (if (stringp run)
                                     (format "&#9654; run (%s)" (org-html-encode-plain-text run))

@@ -88,6 +88,12 @@ four lines in =template/Makefile=.
   checks each block against the text right above it, not against a long
   paragraph far up the page.  =:shebang= goes on the first block only;
   plumbing (arguments, files) can stay in one block.
+- *Outline first, details later.*  A block with =:noweb yes= can name its
+  pieces, =<<load the data>>=, before they are written; each piece is a
+  named block (=#+name: load the data=, no =:tangle=) placed under the prose
+  that explains it, and tangling puts it in place, indented like its
+  reference.  This is also how a class is split into methods (tangling
+  strips each block's own indentation).
 - *Header.*  =#+PROPERTY: header-args :mkdirp yes :comments link :eval no=,
   absolute =:tangle= paths.  Use =:comments no= on blocks whose language
   Emacs =-Q= has no comment syntax for (YAML), or the link line corrupts the
@@ -119,7 +125,9 @@ self-contained file each (figures inlined as base64):
   the buffer or included from files.
 - Tangle blocks are labelled =→ path= (relative to the project root, the
   directory above =notes/=); =:run= blocks =▶ run (where)=; the example block
-  after a run, or a =#+RESULTS:=, =output=.
+  after a run, or a =#+RESULTS:=, =output=.  A block that a =:noweb= outline
+  includes is labelled =⟨name⟩ in → path=; each =<<name>>= in the outline
+  links to it, and the name in its label links back to the outline.
 - A figure can have frames: =#+ATTR_HTML: :data-frames /abs/b.png /abs/c.png
   :data-labels first|second|third= on its image (no quotes; labels joined
   by =|=, the image itself first).  The frames are inlined with the image,

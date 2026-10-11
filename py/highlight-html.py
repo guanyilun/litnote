@@ -8,6 +8,12 @@ package, re-highlight after the fact with pygments, which is already present.
 Only *source* blocks are touched.  `<pre class="example">` holds program
 output, not code, and is left alone.
 
+A noweb reference <<name>> whose block the export labelled as a chunk (an
+element with id="chunk-<slug>") becomes a link to that block; the first
+reference to each chunk gets id="use-<slug>", which the chunk's label links
+back to.  The reference is swapped for a placeholder before highlighting, so
+the lexer sees a single token in its place.
+
     $LITNOTE/py/highlight-html.py out/notes/x.html
 """
 import html
@@ -25,6 +31,11 @@ LANG = {'python': 'python', 'sh': 'bash', 'shell': 'bash',
         'yaml': 'yaml', 'org': 'org', 'json': 'json'}
 
 BLOCK = re.compile(r'<pre class="src src-([\w-]+)"[^>]*>(.*?)</pre>', re.S)
+REF = re.compile(r'<<([^\n<>]+?)>>')
+
+
+def slug(name):
+    return re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')
 
 # Light and dark palettes under the same `.src` prefix; the dark rules sit in
 # a media query so they win only when the reader's OS asks for dark.
@@ -48,6 +59,8 @@ def main(path):
         doc = f.read()
     n = 0
     skipped = set()
+    chunks = set(re.findall(r'id="chunk-([a-z0-9-]+)"', doc))
+    used = set()
 
     def repl(m):
         nonlocal n
@@ -62,7 +75,22 @@ def main(path):
             skipped.add(lang)
             return m.group(0)
         code = html.unescape(re.sub(r'<[^>]+>', '', body))
+        refs = []
+
+        def ref(r):
+            if slug(r.group(1)) not in chunks:
+                return r.group(0)
+            refs.append(r.group(0))
+            return f'NOWEBREF{len(refs) - 1}Q'
+
+        code = REF.sub(ref, code)
         out = highlight(code, lexer, HtmlFormatter(nowrap=True)).rstrip('\n')
+        for i, text in enumerate(refs):
+            k = slug(REF.match(text).group(1))
+            back = '' if k in used else f' id="use-{k}"'
+            used.add(k)
+            out = out.replace(f'NOWEBREF{i}Q', f'<a class="chunk-ref" href="#chunk-{k}"{back}>'
+                                                f'{html.escape(text)}</a>', 1)
         n += 1
         return f'<pre class="src src-{lang}">{out}</pre>'
 
