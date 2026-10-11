@@ -58,8 +58,14 @@ Every change to a tangled step goes around this loop:
 
    #+INCLUDE: "/abs/project/out/fit/summary.txt" example
    ```
-   Figures go in as `[[file:/abs/project/out/fit/residuals.png]]` after
-   the run that saved them. The export labels these cells `→ path`,
+   Figures go in after the run that saved them, each with a name and a
+   caption that describes what is plotted (see "Figures are explained like
+   in a paper" under "Writing the prose"):
+   ```org
+   #+NAME: fig:residuals
+   #+CAPTION: /Residuals of the fit./  ...
+   [[file:/abs/project/out/fit/residuals.png]]
+   ``` The export labels these cells `→ path`,
    `▶ run (where)` and `output`, so the page reads as an executed notebook.
 5. **Write the prose from the output.** Every number in the text comes from
    an included report; re-read the report after each re-run and update
@@ -118,6 +124,26 @@ for every note, new sections and rewrites alike.
   third of them").
 - **Bullets for parallel items only,** each one or two readable sentences,
   not a list of clauses. Use `/Label./` bullets sparingly.
+- **Figures are explained like in a paper: the caption describes, the
+  text interprets.** Every figure has a `#+NAME: fig:x` and a `#+CAPTION:`;
+  org numbers them, and the text cites them as `Figure [[fig:x]]`, which
+  renders as "Figure 3".
+  - The caption says only what is plotted, which the plotting code fixes
+    before anything runs: a short italic title (`/What it is./`), then the
+    data and selection, each panel, the axes with units and scales, what
+    colours, markers, sizes and lines mean, and what a reference line is
+    for. It makes no claims about the result. Write it with the plotting
+    code and check it against the image; update it when the code changes.
+  - What the figure shows goes in the results text, which cites it. Like
+    every other claim there, it is written after the run, backed by the
+    included report, and re-read after each re-run.
+  - Don't leave a figure's explanation to a separate "how to read"
+    paragraph; the encoding belongs in the caption.
+  - When one figure varies with a parameter, make it one figure with
+    frames instead of many figures: `#+ATTR_HTML: :data-frames /abs/b.png
+    /abs/c.png :data-labels a = 0|a = 1|a = 2` (no quotes; labels joined by
+    `|`, the image itself first). The reader steps through them with j / k.
+    The caption says what the frames are.
 - **Explain each equation in words**: what it computes and what its symbols
   are, next to the code that implements it (see the rules below).
 - **Precise, not chatty.** No hype and no filler. Keep the spelling the note
@@ -193,6 +219,27 @@ paragraph it was left on.
 - **YAML blocks.** `:comments link` (the file-wide default) needs a comment
   syntax Emacs `-Q` doesn't have for YAML. Put `:comments no` on YAML blocks,
   or the first line of the file is garbage.
+- **One class over several blocks.** Tangling removes each block's common
+  indentation, so a method can't be continued in its own indented block;
+  with the org of Emacs 27 (9.4) neither `-i` nor a file-local
+  `org-src-preserve-indentation` changes that in batch. Write each method
+  as a named block at column 0, next to its prose, and assemble them with a
+  short outline block (`:noweb yes`) whose indented `<<name>>` lines expand
+  with that indentation:
+  ```org
+  #+begin_src python :tangle /abs/project/bin/fit.py :noweb yes
+  class Model:
+      <<model-init>>
+
+      <<model-fit>>
+  #+end_src
+  ```
+  The method blocks take no `:tangle`. The page labels each one
+  `⟨name⟩ in → path`, links every `<<name>>` in the outline to it, and links
+  the name in its label back to the outline. The same pattern writes any
+  step outline-first: `<<load the group>>`, `<<fit each weighting>>`, each
+  filled in under its own paragraph. Name the pieces as prose; that is the
+  outline the reader sees.
 - **Emacs in scripts.** `emacs`/`make` read stdin. Inside `ssh host bash -s <
   script`, redirect them from `/dev/null` or they swallow the rest of the
   script.

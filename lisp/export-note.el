@@ -64,6 +64,13 @@
   pre.example { background: #fbfaf7; border: 1px solid #e6e2d8;
                 border-left: 3px solid #c8a45c; color: #333; }
   figure, p > img { margin: 1.6rem 0; text-align: center; }
+  figcaption { text-align: left; font-size: .9rem; line-height: 1.45; color: #444;
+               margin: .5rem auto 0; max-width: 46rem; }
+  figcaption .figure-number { font-weight: bold; color: #222; }
+  .frame-bar { margin: .35rem 0 0; font: .8rem/1.3 'DejaVu Sans Mono', monospace; color: #555; }
+  .frame-bar button { font: inherit; padding: .1rem .5rem; margin: 0 .5rem; cursor: pointer;
+      border: 1px solid #ccc; border-radius: 4px; background: #fff; color: #333; }
+  .frame-bar button:hover { background: #f0f0f0; }
   img { max-width: 100%; height: auto; border: 1px solid #e5e5e5;
         border-radius: 4px; background: #fff; }
   table { border-collapse: collapse; font-size: .92rem; margin: 1.2rem 0; }
@@ -138,16 +145,26 @@
       border-radius: 3px; }
   .cell-label.run { color: #1f7a4d; font-weight: bold; }
   .cell-label.output { color: #8a6d1f; margin-top: .2rem; }
+  .cell-label.chunk a { color: #2a5d8f; text-decoration: none; }
+  .cell-label.chunk a:hover { text-decoration: underline; }
+  pre.src a.chunk-ref { color: inherit; text-decoration: underline dotted; }
   .run-cell pre.src { background: #f1f8f3; border-color: #cfe6d7; }
   .output-cell pre.example { border-left: 3px solid #d9c27a; }
+  /* Outputs are folded by default; the label stays visible above them. */
+  details.output-cell > summary { cursor: pointer; margin: .65rem 0 .2rem;
+      font: .78rem/1.3 'DejaVu Sans Mono', monospace; color: #8a6d1f; }
+  details.output-cell > summary:hover { text-decoration: underline; }
+  details.output-cell[open] > summary { margin-bottom: 0; }
 
   @media (prefers-color-scheme: dark) {
     .cell-label { color: #8a8a8a; }
     .cell-label code { background: #1f2a36; color: #8cb4e0; }
     .cell-label.run { color: #6fc596; }
     .cell-label.output { color: #d2b460; }
+    .cell-label.chunk a { color: #8cb4e0; }
     .run-cell pre.src { background: #18231c; border-color: #2c4235; }
     .output-cell pre.example { border-left-color: #7d6a2f; }
+    details.output-cell > summary { color: #d2b460; }
     body { background: #16181c; color: #dcdcdc; }
     h3 { color: #c8c8c8; }
     a { color: #7aa7e0; }
@@ -156,6 +173,8 @@
     pre.example { background: #1a1d21; border-color: #2c3037; color: #c8c8c8; }
     th, td { border-color: #333; } th { background: #24272c; }
     img { border-color: #333; }
+    figcaption { color: #bbb; }
+    figcaption .figure-number { color: #ddd; }
     #postamble { border-top-color: #2c3037; color: #8a8a8a; }
     #table-of-contents { background: #1a1d21; border-right-color: #2c3037; }
     #table-of-contents a { color: #b8b8b8; }
@@ -241,6 +260,18 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!anyOpen) window.scrollTo({ top: 0 });
   });
 
+  // Folded outputs are opened for printing, and folded back afterwards.
+  var printed = [];
+  window.addEventListener('beforeprint', function () {
+    printed = Array.prototype.filter.call(document.querySelectorAll('details.output-cell'),
+                                          function (d) { return !d.open; });
+    printed.forEach(function (d) { d.open = true; });
+  });
+  window.addEventListener('afterprint', function () {
+    printed.forEach(function (d) { d.open = false; });
+    printed = [];
+  });
+
   // A target inside a folded section has to be revealed, or the link goes
   // nowhere visible.
   function reveal(id) {
@@ -293,10 +324,64 @@ document.addEventListener('DOMContentLoaded', function () {
   }, { passive: true });
   spy();
 });
+
+// Figures with frames: an <img data-frames='a.png b.png'> has extra frames
+// (inlined by inline-images.py as data URIs joined by |) and optional
+// data-labels, one per frame, the image itself first.  j / k step the
+// figure nearest the middle of the screen; the buttons under it too.
+document.addEventListener('DOMContentLoaded', function () {
+  var figs = Array.prototype.map.call(document.querySelectorAll('img[data-frames]'), function (img) {
+    var raw = img.getAttribute('data-frames');
+    var srcs = raw.indexOf('data:') === 0 ? raw.split('|') : raw.split(' ').filter(Boolean);
+    srcs.unshift(img.getAttribute('src'));
+    var labels = (img.getAttribute('data-labels') || '').split('|');
+    var bar = document.createElement('div');
+    bar.className = 'frame-bar';
+    bar.innerHTML = '<button type=button class=frame-prev>&#8249; k</button>' +
+      '<span class=frame-label></span><button type=button class=frame-next>j &#8250;</button>';
+    img.insertAdjacentElement('afterend', bar);
+    var f = { img: img, srcs: srcs, labels: labels, i: 0, bar: bar };
+    f.show = function (i) {
+      f.i = (i + f.srcs.length) % f.srcs.length;
+      f.img.src = f.srcs[f.i];
+      bar.querySelector('.frame-label').textContent = 'frame ' + (f.i + 1) + ' of ' + f.srcs.length +
+        (f.labels[f.i] ? ': ' + f.labels[f.i] : '');
+    };
+    bar.querySelector('.frame-prev').onclick = function () { f.show(f.i - 1); };
+    bar.querySelector('.frame-next').onclick = function () { f.show(f.i + 1); };
+    f.show(0);
+    return f;
+  });
+  if (!figs.length) return;
+  function current() {
+    var mid = window.innerHeight / 2, best = null, bd = Infinity;
+    figs.forEach(function (f) {
+      var r = f.img.getBoundingClientRect();
+      if (r.bottom < 0 || r.top > window.innerHeight) return;
+      var d = Math.abs((r.top + r.bottom) / 2 - mid);
+      if (d < bd) { bd = d; best = f; }
+    });
+    return best;
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    var t = e.target;
+    if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+    if (e.key !== 'j' && e.key !== 'k') return;
+    var f = current();
+    if (!f) return;
+    f.show(f.i + (e.key === 'j' ? 1 : -1));
+    e.preventDefault();
+  });
+});
 </script>")
 
-;; Notebook reading of the export.  Three kinds of block, each labelled:
+;; Notebook reading of the export.  Four kinds of block, each labelled:
 ;;   - a block with :tangle FILE is code that becomes FILE ("-> FILE");
+;;   - a named block that a :noweb outline includes as <<name>> is a piece of
+;;     that outline's file ("<name> in -> FILE"); py/highlight-html.py turns
+;;     each <<name>> in the outline into a link to it, and the name in the
+;;     label links back;
 ;;   - a block with :run is a cell that was executed, as a script, a slurm job
 ;;     or a shell command -- its body is the command ("run");
 ;;   - an example / fixed-width block right after a :run cell, or saved as the
@@ -312,6 +397,41 @@ document.addEventListener('DOMContentLoaded', function () {
          (abs (expand-file-name target dir)))
     (if (string-prefix-p root abs) (file-relative-name abs root) target)))
 
+(defun note/slug (name)
+  (string-trim (replace-regexp-in-string "[^a-z0-9]+" "-" (downcase name)) "-+" "-+"))
+
+(defvar note/chunks-cache nil)
+
+(defun note/chunks (info)
+  "Alist of the blocks that :noweb outlines include: (NAME . FILE).
+FILE is the :tangle target the outline, or the chain of outlines, ends in."
+  (let ((tree (plist-get info :parse-tree)))
+    (unless (eq (car note/chunks-cache) tree)
+      (let (parent)
+        (org-element-map tree 'src-block
+          (lambda (b)
+            (let* ((params (org-element-property :parameters b))
+                   (noweb (note/param params "noweb"))
+                   (target (note/param params "tangle"))
+                   (file (and (stringp target) (not (member target '("no" "yes"))) target))
+                   (name (org-element-property :name b))
+                   (value (org-element-property :value b))
+                   (start 0))
+              (when (and (stringp noweb) (not (equal noweb "no")))
+                (while (string-match "<<\\([^\n<>]+?\\)>>" value start)
+                  (push (cons (match-string 1 value) (if file (list 'file file) (list 'chunk name)))
+                        parent)
+                  (setq start (match-end 0)))))))
+        (setq note/chunks-cache
+              (cons tree
+                    (mapcar (lambda (p)
+                              (let ((up (cdr p)) (n 0))
+                                (while (and (eq (car up) 'chunk) (< n 20))
+                                  (setq up (cdr (assoc (cadr up) parent)) n (1+ n)))
+                                (cons (car p) (and (eq (car up) 'file) (cadr up)))))
+                            parent)))))
+    (cdr note/chunks-cache)))
+
 (defun note/label (cls text)
   (format "<div class=\"cell-label %s\">%s</div>\n" cls text))
 
@@ -325,6 +445,16 @@ document.addEventListener('DOMContentLoaded', function () {
       (concat (note/label "tangle" (format "&#8594; <code>%s</code>"
                                            (org-html-encode-plain-text (note/relpath target))))
               html))
+     ((assoc (org-element-property :name src-block) (note/chunks info))
+      (let* ((name (org-element-property :name src-block))
+             (file (cdr (assoc name (note/chunks info))))
+             (slug (note/slug name)))
+        (concat (format "<div class=\"cell-label chunk\" id=\"chunk-%s\"><a href=\"#use-%s\">&#10216;%s&#10217;</a>%s</div>\n"
+                        slug slug (org-html-encode-plain-text name)
+                        (if file (format " in &#8594; <code>%s</code>"
+                                         (org-html-encode-plain-text (note/relpath file)))
+                          ""))
+                html)))
      (run
       (concat (note/label "run" (if (stringp run)
                                     (format "&#9654; run (%s)" (org-html-encode-plain-text run))
@@ -342,7 +472,11 @@ document.addEventListener('DOMContentLoaded', function () {
 (defun note/output-label (orig el contents info)
   (let ((html (funcall orig el contents info)))
     (if (note/output-p el info)
-        (concat (note/label "output" "output") "<div class=\"output-cell\">" html "</div>")
+        (let ((n (length (split-string (or (org-element-property :value el) "") "\n" t))))
+          (concat (note/label "output" "output")
+                  "<details class=\"output-cell\"><summary>"
+                  (format "%d line%s" n (if (= n 1) "" "s"))
+                  "</summary>" html "</details>"))
       html)))
 (advice-add 'org-html-example-block :around #'note/output-label)
 (advice-add 'org-html-fixed-width :around #'note/output-label)

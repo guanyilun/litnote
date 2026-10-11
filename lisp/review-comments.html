@@ -133,9 +133,12 @@ document.addEventListener('DOMContentLoaded', function () {
     h.classList.add('rc-host');
     return h;
   }
+  // Outputs are folded <details>; one with a comment, or one being commented
+  // on, has to be open to show its box and marker.
+  function unfold(h) { if (h.tagName === 'DETAILS') h.open = true; return h; }
 
   function openBox(a, existing) {
-    var h = host(a);
+    var h = unfold(host(a));
     var old = h.nextElementSibling;
     if (old && old.classList.contains('rc-box')) { old.remove(); return; }
     var box = document.createElement('div');
@@ -193,7 +196,7 @@ document.addEventListener('DOMContentLoaded', function () {
     comments.forEach(function (c) {
       var a = find(c); c._a = a;
       if (!a || c.resolved) return;
-      var h = host(a); h.classList.add('rc-has');
+      var h = unfold(host(a)); h.classList.add('rc-has');
       count[anchors.indexOf(a)] = (count[anchors.indexOf(a)] || 0) + 1;
     });
     Object.keys(count).forEach(function (i) {
@@ -227,7 +230,7 @@ document.addEventListener('DOMContentLoaded', function () {
       mb.onclick = function (e) { e.stopPropagation(); setResolved(c, !c.resolved); };
       if (!c._a) { var l = document.createElement('div'); l.className = 'rc-lost';
         l.textContent = 'anchor not found on this version of the page'; it.appendChild(l); }
-      it.onclick = function () { if (c._a) host(c._a).scrollIntoView({ block: 'center' }); };
+      it.onclick = function () { if (c._a) unfold(host(c._a)).scrollIntoView({ block: 'center' }); };
       panel.appendChild(it);
     });
     panel.querySelector('.rc-copy').onclick = copyOpen;

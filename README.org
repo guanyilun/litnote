@@ -88,6 +88,12 @@ four lines in =template/Makefile=.
   checks each block against the text right above it, not against a long
   paragraph far up the page.  =:shebang= goes on the first block only;
   plumbing (arguments, files) can stay in one block.
+- *Outline first, details later.*  A block with =:noweb yes= can name its
+  pieces, =<<load the data>>=, before they are written; each piece is a
+  named block (=#+name: load the data=, no =:tangle=) placed under the prose
+  that explains it, and tangling puts it in place, indented like its
+  reference.  This is also how a class is split into methods (tangling
+  strips each block's own indentation).
 - *Header.*  =#+PROPERTY: header-args :mkdirp yes :comments link :eval no=,
   absolute =:tangle= paths.  Use =:comments no= on blocks whose language
   Emacs =-Q= has no comment syntax for (YAML), or the link line corrupts the
@@ -95,7 +101,11 @@ four lines in =template/Makefile=.
 - *Runs read as cells.*  A run is a =#+begin_src sh :run <where> :eval no=
   block holding the exact command, which writes a report file, followed by
   =#+INCLUDE: "/abs/path/report.txt" example=.  Never paste output by hand.
-  Figures: =[[file:...png]]= after the run that saved them.
+  Figures: =[[file:...png]]= after the run that saved them, with a
+  =#+NAME: fig:x= and a =#+CAPTION:= written like a paper's.  The caption
+  only describes what is plotted (data, selection, axes, units, colours,
+  markers), which the code fixes; what the figure shows goes in the results
+  text, which cites it as =Figure [[fig:x]]= and is backed by the report.
 - *One review document.*  =notes/<name>_analysis.org= includes the others
   with =#+INCLUDE: "x.org" :lines "N-" :minlevel 2=, where N skips that
   note's header lines.  Each include gets a level-1 heading above it (the
@@ -115,7 +125,19 @@ self-contained file each (figures inlined as base64):
   the buffer or included from files.
 - Tangle blocks are labelled =→ path= (relative to the project root, the
   directory above =notes/=); =:run= blocks =▶ run (where)=; the example block
-  after a run, or a =#+RESULTS:=, =output=.
+  after a run, or a =#+RESULTS:=, =output=.  A block that a =:noweb= outline
+  includes is labelled =⟨name⟩ in → path=; each =<<name>>= in the outline
+  links to it, and the name in its label links back to the outline.
+- A figure can have frames: =#+ATTR_HTML: :data-frames /abs/b.png /abs/c.png
+  :data-labels first|second|third= on its image (no quotes; labels joined
+  by =|=, the image itself first).  The frames are inlined with the image,
+  and =j= / =k= (or the buttons under it) step the figure nearest the middle
+  of the screen.  Print and the static image show the first frame, so make
+  it the one the text relies on.
+- Outputs are folded by default, under a line giving their length
+  ("39 lines"); a click opens them.  They open by themselves for printing,
+  when they carry a review comment, and when a comment is opened from the
+  Comments panel.
 - Pygments highlighting (python, sh, yaml, org, json, elisp, make).  The
   token markup depends on the pygments version, so build under the project's
   environment for reproducible HTML.
