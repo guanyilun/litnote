@@ -219,6 +219,23 @@ paragraph it was left on.
 - **YAML blocks.** `:comments link` (the file-wide default) needs a comment
   syntax Emacs `-Q` doesn't have for YAML. Put `:comments no` on YAML blocks,
   or the first line of the file is garbage.
+- **One class over several blocks.** Tangling removes each block's common
+  indentation, so a method can't be continued in its own indented block;
+  with the org of Emacs 27 (9.4) neither `-i` nor a file-local
+  `org-src-preserve-indentation` changes that in batch. Write each method
+  as a named block at column 0, next to its prose, and assemble them with a
+  short outline block (`:noweb yes`) whose indented `<<name>>` lines expand
+  with that indentation:
+  ```org
+  #+begin_src python :tangle /abs/project/bin/fit.py :noweb yes
+  class Model:
+      <<model-init>>
+
+      <<model-fit>>
+  #+end_src
+  ```
+  The method blocks take no `:tangle`; the page shows the outline with its
+  references and each method where it is explained.
 - **Emacs in scripts.** `emacs`/`make` read stdin. Inside `ssh host bash -s <
   script`, redirect them from `/dev/null` or they swallow the rest of the
   script.
