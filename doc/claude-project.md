@@ -12,7 +12,7 @@ are submitted, where data lives).
 |---|---|---|
 | `notes/*.org` | the analysis: prose, code blocks, run cells, included outputs | **yes, the only place** |
 | `notes/<name>_analysis.org` | the review document; `#+INCLUDE`s the other notes | when notes are added or reordered |
-| `bin/`, `src/`, `scripts/`, … | code tangled from the notes | never by hand |
+| `bin/`, `src/`, `scripts/`, `diagrams/`, … | code and SVG diagrams tangled from the notes | never by hand |
 | `out/` | files written by runs (reports, figures); `out/notes/*.html` from `make` | never by hand |
 | `readme.org` | where things stand, open items, notes table | yes |
 | `Makefile` | four lines: `LITNOTE`, `CODE`, `REVIEW`, `include` | rarely (`CODE` globs) |
@@ -124,6 +124,23 @@ for every note, new sections and rewrites alike.
   third of them").
 - **Bullets for parallel items only,** each one or two readable sentences,
   not a list of clauses. Use `/Label./` bullets sparingly.
+- **Show it, don't only tell it.** Readers are visual, and a figure with a
+  good caption is worth many paragraphs. Make figures by default, of two
+  kinds:
+  - *Result figures*, drawn by the step's script from its output: the
+    light curve, the fit and its residuals, the distribution with the cut
+    marked. A results section with numbers in a table usually also wants
+    the figure those numbers describe. Prefer one well-designed multi-panel
+    figure to several loose ones.
+  - *Explanatory diagrams* of a mechanism, a geometry or a data flow: what
+    the model is, how the pieces of the pipeline connect, what a selection
+    keeps and drops. Write them as SVG in the note, in a block with
+    `:tangle /abs/project/diagrams/x.svg :comments no`, so the diagram is
+    reviewed source like the code; or draw them with the plotting library
+    when they are built from data. Keep them plain: few colours, labelled
+    parts, readable at page width.
+  When a paragraph explains something spatial, sequential or
+  comparative, ask whether a figure would explain it better, and make it.
 - **Figures are explained like in a paper: the caption describes, the
   text interprets.** Every figure has a `#+NAME: fig:x` and a `#+CAPTION:`;
   org numbers them, and the text cites them as `Figure [[fig:x]]`, which
@@ -262,6 +279,8 @@ paragraph it was left on.
 
 - the note explains the change in plain prose ("Writing the prose"), and its
   code blocks are bare, with long blocks written outline-first;
+- results are shown in figures, and mechanisms or data flows that prose
+  struggles with have a diagram, each with a caption;
 - the run cell and included output match what was actually run;
 - `make` succeeds and `make check-tangled` reports all in sync;
 - `readme.org` open items are updated if something was closed or raised;

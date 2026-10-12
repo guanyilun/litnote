@@ -88,6 +88,12 @@ four lines in =template/Makefile=.
   checks each block against the text right above it, not against a long
   paragraph far up the page.  =:shebang= goes on the first block only;
   plumbing (arguments, files) can stay in one block.
+- *Figures by default.*  Results are shown in figures drawn by the step's
+  script, and mechanisms, geometries and data flows in diagrams.  A diagram
+  is SVG written in the note and tangled with =:comments no= to
+  =diagrams/x.svg=, so it is reviewed like the code; the template's =CODE=
+  includes =diagrams/*.svg=.  Every figure has a =#+NAME:= and a
+  =#+CAPTION:=; the caption describes, the text interprets.
 - *Outline first, details later.*  The default for any long block, or a
   loop whose body needs explaining: a short block with =:noweb yes= that
   keeps the control flow and names its pieces, =<<load the data>>=; each
