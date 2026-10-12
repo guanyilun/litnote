@@ -169,6 +169,18 @@ a clause refers to, split it.
   above it. Put `:shebang` on the first block of a script only. Pure
   plumbing (argument parsing, reading and writing files) can stay in one
   block with a sentence on what it reads and writes.
+- **Long blocks are written outline-first (noweb).** When a block would be
+  long, or a loop or branch holds more than a few lines that need their own
+  explanation, write the block as a short outline with `:noweb yes` and put
+  each non-trivial piece in a named chunk: `<<solve the segment and apply
+  the cut>>`. Each chunk is a `#+name:` block with no `:tangle` (and `:eval
+  no` in a session note), placed under the prose and equation that explain
+  it; tangling puts it in place with the indentation of its reference, and
+  the page links each reference to its chunk and back. Chunks can hold
+  chunks. Name them as plain-language steps, since the outline is what the
+  reader sees first. The outline keeps the control flow (loops, `try`,
+  writing the outputs) and the trivial lines; a helper that is naturally a
+  function stays a function in its own block.
 - **Never paste output by hand.** Outputs enter by `#+INCLUDE` of a file a
   run wrote, so they can't drift from the code.
 - **Self-contained.** Don't point to other analysis folders or colleagues'
@@ -236,10 +248,8 @@ paragraph it was left on.
   ```
   The method blocks take no `:tangle`. The page labels each one
   `⟨name⟩ in → path`, links every `<<name>>` in the outline to it, and links
-  the name in its label back to the outline. The same pattern writes any
-  step outline-first: `<<load the group>>`, `<<fit each weighting>>`, each
-  filled in under its own paragraph. Name the pieces as prose; that is the
-  outline the reader sees.
+  the name in its label back to the outline. This is the same outline-first
+  pattern the rules ask for in any long block.
 - **Emacs in scripts.** `emacs`/`make` read stdin. Inside `ssh host bash -s <
   script`, redirect them from `/dev/null` or they swallow the rest of the
   script.
@@ -251,7 +261,7 @@ paragraph it was left on.
 ## Done means
 
 - the note explains the change in plain prose ("Writing the prose"), and its
-  code blocks are bare;
+  code blocks are bare, with long blocks written outline-first;
 - the run cell and included output match what was actually run;
 - `make` succeeds and `make check-tangled` reports all in sync;
 - `readme.org` open items are updated if something was closed or raised;

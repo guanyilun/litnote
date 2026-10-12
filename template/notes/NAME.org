@@ -34,13 +34,26 @@ def mean(xs):
     return sum(xs) / len(xs)
 #+end_src
 
-The script prints the arguments and their mean.
+The script prints the mean, then one row per argument.  A loop whose body
+needs explaining is written as an outline: the loop stays here, and its body
+is a named piece, filled in below under its own explanation.
 
-#+begin_src python :tangle @PROJ@/bin/example.py :eval no
+#+begin_src python :tangle @PROJ@/bin/example.py :eval no :noweb yes
 
 
 xs = [float(a) for a in sys.argv[1:]]
-print(xs, mean(xs))
+xbar = mean(xs)
+print(f"mean {xbar:g}")
+for x in xs:
+    <<print one value and its deviation>>
+#+end_src
+
+Each row is a value \( x_{i} \) and its deviation from the mean,
+\( x_{i} - \bar{x} \).
+
+#+name: print one value and its deviation
+#+begin_src python :eval no
+print(f"{x:8.3f} {x - xbar:+8.3f}")
 #+end_src
 
 #+begin_src sh :run login :eval no
