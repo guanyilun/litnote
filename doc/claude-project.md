@@ -111,6 +111,12 @@ A note is read by a person who wants to follow the reasoning, so write it
 the way you would explain the analysis to a colleague. This is the default
 for every note, new sections and rewrites alike.
 
+- **Explain the analysis, not the work.** A note walks the reader through
+  the analysis and explains what the results show: the question, the method
+  as a choice, the figure, the interpretation. It is not a log of how the
+  work was done (what was ported, what matched, which version was used).
+  Verification belongs in a note of its own, such as a checks note that
+  compares with an earlier or published version.
 - **Think it through in order.** Say what we want to know and why, then
   what we did, then what we found. Short paragraphs.
 - **Plain words, short sentences.** One idea per sentence. Don't chain
