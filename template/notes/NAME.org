@@ -22,7 +22,39 @@ print(PROJ)
 The reasoning goes here, in prose; the blocks stay bare.  A script is
 tangled (=make tangle=), run outside Emacs, and its output included.  It is
 written in pieces, all tangled to the same file in order, each with its
-explanation right above it.
+explanation right above it.  Figure [[fig:example-flow]] shows what it does.
+
+#+begin_src xml :tangle @PROJ@/diagrams/example.svg :comments no
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 90" width="520" height="90"
+     font-family="sans-serif" font-size="14">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#444"/>
+    </marker>
+  </defs>
+  <g fill="#f4f4f4" stroke="#444">
+    <rect x="10" y="25" width="130" height="40" rx="6"/>
+    <rect x="195" y="25" width="130" height="40" rx="6"/>
+    <rect x="380" y="25" width="130" height="40" rx="6"/>
+  </g>
+  <g stroke="#444" marker-end="url(#arrow)">
+    <line x1="140" y1="45" x2="193" y2="45"/>
+    <line x1="325" y1="45" x2="378" y2="45"/>
+  </g>
+  <g text-anchor="middle" fill="#222">
+    <text x="75" y="50">arguments xᵢ</text>
+    <text x="260" y="50">mean x̄</text>
+    <text x="445" y="50">xᵢ − x̄ per row</text>
+  </g>
+</svg>
+#+end_src
+
+#+NAME: fig:example-flow
+#+CAPTION: /What the example script computes./  The arguments are read as
+#+CAPTION: numbers, their mean is computed, and one row is printed per argument
+#+CAPTION: with its deviation from the mean.
+[[file:@PROJ@/diagrams/example.svg]]
 
 The mean of the arguments, read as numbers: \( \bar{x} = \frac{1}{n} \sum_{i} x_{i} \).
 
@@ -34,13 +66,26 @@ def mean(xs):
     return sum(xs) / len(xs)
 #+end_src
 
-The script prints the arguments and their mean.
+The script prints the mean, then one row per argument.  A loop whose body
+needs explaining is written as an outline: the loop stays here, and its body
+is a named piece, filled in below under its own explanation.
 
-#+begin_src python :tangle @PROJ@/bin/example.py :eval no
+#+begin_src python :tangle @PROJ@/bin/example.py :eval no :noweb yes
 
 
 xs = [float(a) for a in sys.argv[1:]]
-print(xs, mean(xs))
+xbar = mean(xs)
+print(f"mean {xbar:g}")
+for x in xs:
+    <<print one value and its deviation>>
+#+end_src
+
+Each row is a value \( x_{i} \) and its deviation from the mean,
+\( x_{i} - \bar{x} \).
+
+#+name: print one value and its deviation
+#+begin_src python :eval no
+print(f"{x:8.3f} {x - xbar:+8.3f}")
 #+end_src
 
 #+begin_src sh :run login :eval no

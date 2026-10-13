@@ -2,6 +2,6 @@
 # The rules live in the shared litnote repo; `make list` shows what they see.
 
 LITNOTE := @LITNOTE@
-CODE    := bin/*.py src/*.py scripts/*.sbatch scripts/*.sh
+CODE    := bin/*.py src/*.py scripts/*.sbatch scripts/*.sh diagrams/*.svg
 REVIEW  := notes/@NAME@_analysis.org
 include $(LITNOTE)/mk/litnote.mk
