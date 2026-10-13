@@ -155,6 +155,18 @@
       font: .78rem/1.3 'DejaVu Sans Mono', monospace; color: #8a6d1f; }
   details.output-cell > summary:hover { text-decoration: underline; }
   details.output-cell[open] > summary { margin-bottom: 0; }
+  /* Long code blocks are shown in a box of fixed height; a bar under the
+     box expands them to full length and folds them back. */
+  pre.src.clamped { max-height: 22rem; overflow-y: hidden; margin-bottom: 0;
+      -webkit-mask-image: linear-gradient(to bottom, #000 80%, transparent);
+              mask-image: linear-gradient(to bottom, #000 80%, transparent); }
+  .clamp-bar { margin: 0 0 1rem; }
+  .clamp-bar button { font: .78rem/1.3 'DejaVu Sans Mono', monospace; color: #2a5d8f;
+      background: none; border: 0; padding: .25rem 0; cursor: pointer; }
+  .clamp-bar button:hover { text-decoration: underline; }
+  @media print { pre.src.clamped { max-height: none; -webkit-mask-image: none;
+                                   mask-image: none; }
+                 .clamp-bar { display: none; } }
 
   @media (prefers-color-scheme: dark) {
     .cell-label { color: #8a8a8a; }
@@ -165,6 +177,7 @@
     .run-cell pre.src { background: #18231c; border-color: #2c4235; }
     .output-cell pre.example { border-left-color: #7d6a2f; }
     details.output-cell > summary { color: #d2b460; }
+    .clamp-bar button { color: #8cb4e0; }
     body { background: #16181c; color: #dcdcdc; }
     h3 { color: #c8c8c8; }
     a { color: #7aa7e0; }
@@ -373,6 +386,45 @@ document.addEventListener('DOMContentLoaded', function () {
     f.show(f.i + (e.key === 'j' ? 1 : -1));
     e.preventDefault();
   });
+});
+
+// Long code blocks: a box of fixed height (about 18 lines) with a bar to
+// expand it.  A block is clamped only when folding saves a fair amount
+// (over 28 lines), so a block a few lines too long is shown whole.  Lines
+// are counted rather than measured, since blocks in folded sections have
+// no height.  Following a link into a clamped block expands it.
+document.addEventListener('DOMContentLoaded', function () {
+  var blocks = [];
+  document.querySelectorAll('pre.src').forEach(function (pre) {
+    var n = pre.textContent.replace(/\\n$/, '').split('\\n').length;
+    if (n <= 28) return;
+    var bar = document.createElement('div');
+    bar.className = 'clamp-bar';
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    bar.appendChild(btn);
+    pre.insertAdjacentElement('afterend', bar);
+    var b = { pre: pre, set: function (open) {
+      pre.classList.toggle('clamped', !open);
+      btn.textContent = open ? '\u25B4 fold' : '\u25BE show all ' + n + ' lines';
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    } };
+    btn.onclick = function () {
+      var open = pre.classList.contains('clamped');
+      b.set(open);
+      if (!open && bar.getBoundingClientRect().top < 0) pre.scrollIntoView({ block: 'start' });
+    };
+    b.set(false);
+    blocks.push(b);
+  });
+  function reveal() {
+    var id = decodeURIComponent(location.hash.slice(1));
+    var t = id && document.getElementById(id);
+    if (!t) return;
+    blocks.forEach(function (b) { if (b.pre.contains(t)) { b.set(true); t.scrollIntoView(); } });
+  }
+  window.addEventListener('hashchange', reveal);
+  reveal();
 });
 </script>")
 

@@ -134,6 +134,10 @@ self-contained file each (figures inlined as base64):
   and =j= / =k= (or the buttons under it) step the figure nearest the middle
   of the screen.  Print and the static image show the first frame, so make
   it the one the text relies on.
+- Code blocks longer than 28 lines are shown in a box of about 18 lines
+  that fades out at the bottom, with a bar under it ("▾ show all 61 lines")
+  that expands it and folds it back.  Following a link into a clamped block
+  expands it; print shows every block whole.
 - Outputs are folded by default, under a line giving their length
   ("39 lines"); a click opens them.  They open by themselves for printing,
   when they carry a review comment, and when a comment is opened from the
