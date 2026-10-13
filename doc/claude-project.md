@@ -12,7 +12,7 @@ are submitted, where data lives).
 |---|---|---|
 | `notes/*.org` | the analysis: prose, code blocks, run cells, included outputs | **yes, the only place** |
 | `notes/<name>_analysis.org` | the review document; `#+INCLUDE`s the other notes | when notes are added or reordered |
-| `bin/`, `src/`, `scripts/`, … | code tangled from the notes | never by hand |
+| `bin/`, `src/`, `scripts/`, `diagrams/`, … | code and SVG diagrams tangled from the notes | never by hand |
 | `out/` | files written by runs (reports, figures); `out/notes/*.html` from `make` | never by hand |
 | `readme.org` | where things stand, open items, notes table | yes |
 | `Makefile` | four lines: `LITNOTE`, `CODE`, `REVIEW`, `include` | rarely (`CODE` globs) |
@@ -70,7 +70,16 @@ Every change to a tangled step goes around this loop:
 5. **Write the prose from the output.** Every number in the text comes from
    an included report; re-read the report after each re-run and update
    the text.
-6. **Render and check.** `make` renders `out/notes/*.html` and warns about
+6. **Run everything again.** `make runs` runs every run cell of the notes in
+   order (the review document's include order, then each note top to bottom),
+   each as `bash -e` in the project root, logging to `out/runs/`, and stops at
+   the first failure; `make runs-list` shows the plan. So a run cell must be
+   complete on its own: it calls tangled scripts, creates the directories it
+   writes to, and runs in the foreground. Keep logic out of run cells (loops,
+   comparisons, filters): put it in a tangled script and call that, so every
+   result comes from reviewed code. Mark a cell `:run manual` if it must not be
+   rerun automatically.
+7. **Render and check.** `make` renders `out/notes/*.html` and warns about
    blocks with no output. `make check-tangled` must say *all tangled and in
    sync*; if it reports `EDITED` or `NOT TANGLED`, move the change into a
    note. This is also the review-coverage check: the reviewer reads the
@@ -111,6 +120,12 @@ A note is read by a person who wants to follow the reasoning, so write it
 the way you would explain the analysis to a colleague. This is the default
 for every note, new sections and rewrites alike.
 
+- **Explain the analysis, not the work.** A note walks the reader through
+  the analysis and explains what the results show: the question, the method
+  as a choice, the figure, the interpretation. It is not a log of how the
+  work was done (what was ported, what matched, which version was used).
+  Verification belongs in a note of its own, such as a checks note that
+  compares with an earlier or published version.
 - **Think it through in order.** Say what we want to know and why, then
   what we did, then what we found. Short paragraphs.
 - **Plain words, short sentences.** One idea per sentence. Don't chain
@@ -124,6 +139,23 @@ for every note, new sections and rewrites alike.
   third of them").
 - **Bullets for parallel items only,** each one or two readable sentences,
   not a list of clauses. Use `/Label./` bullets sparingly.
+- **Show it, don't only tell it.** Readers are visual, and a figure with a
+  good caption is worth many paragraphs. Make figures by default, of two
+  kinds:
+  - *Result figures*, drawn by the step's script from its output: the
+    light curve, the fit and its residuals, the distribution with the cut
+    marked. A results section with numbers in a table usually also wants
+    the figure those numbers describe. Prefer one well-designed multi-panel
+    figure to several loose ones.
+  - *Explanatory diagrams* of a mechanism, a geometry or a data flow: what
+    the model is, how the pieces of the pipeline connect, what a selection
+    keeps and drops. Write them as SVG in the note, in a block with
+    `:tangle /abs/project/diagrams/x.svg :comments no`, so the diagram is
+    reviewed source like the code; or draw them with the plotting library
+    when they are built from data. Keep them plain: few colours, labelled
+    parts, readable at page width.
+  When a paragraph explains something spatial, sequential or
+  comparative, ask whether a figure would explain it better, and make it.
 - **Figures are explained like in a paper: the caption describes, the
   text interprets.** Every figure has a `#+NAME: fig:x` and a `#+CAPTION:`;
   org numbers them, and the text cites them as `Figure [[fig:x]]`, which
@@ -169,6 +201,18 @@ a clause refers to, split it.
   above it. Put `:shebang` on the first block of a script only. Pure
   plumbing (argument parsing, reading and writing files) can stay in one
   block with a sentence on what it reads and writes.
+- **Long blocks are written outline-first (noweb).** When a block would be
+  long, or a loop or branch holds more than a few lines that need their own
+  explanation, write the block as a short outline with `:noweb yes` and put
+  each non-trivial piece in a named chunk: `<<solve the segment and apply
+  the cut>>`. Each chunk is a `#+name:` block with no `:tangle` (and `:eval
+  no` in a session note), placed under the prose and equation that explain
+  it; tangling puts it in place with the indentation of its reference, and
+  the page links each reference to its chunk and back. Chunks can hold
+  chunks. Name them as plain-language steps, since the outline is what the
+  reader sees first. The outline keeps the control flow (loops, `try`,
+  writing the outputs) and the trivial lines; a helper that is naturally a
+  function stays a function in its own block.
 - **Never paste output by hand.** Outputs enter by `#+INCLUDE` of a file a
   run wrote, so they can't drift from the code.
 - **Self-contained.** Don't point to other analysis folders or colleagues'
@@ -236,10 +280,8 @@ paragraph it was left on.
   ```
   The method blocks take no `:tangle`. The page labels each one
   `⟨name⟩ in → path`, links every `<<name>>` in the outline to it, and links
-  the name in its label back to the outline. The same pattern writes any
-  step outline-first: `<<load the group>>`, `<<fit each weighting>>`, each
-  filled in under its own paragraph. Name the pieces as prose; that is the
-  outline the reader sees.
+  the name in its label back to the outline. This is the same outline-first
+  pattern the rules ask for in any long block.
 - **Emacs in scripts.** `emacs`/`make` read stdin. Inside `ssh host bash -s <
   script`, redirect them from `/dev/null` or they swallow the rest of the
   script.
@@ -251,7 +293,9 @@ paragraph it was left on.
 ## Done means
 
 - the note explains the change in plain prose ("Writing the prose"), and its
-  code blocks are bare;
+  code blocks are bare, with long blocks written outline-first;
+- results are shown in figures, and mechanisms or data flows that prose
+  struggles with have a diagram, each with a caption;
 - the run cell and included output match what was actually run;
 - `make` succeeds and `make check-tangled` reports all in sync;
 - `readme.org` open items are updated if something was closed or raised;

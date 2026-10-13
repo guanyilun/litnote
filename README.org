@@ -35,11 +35,14 @@ Expensive steps go around this loop:
 4. *Render* (=make=): every note becomes =out/notes/<note>.html=, labelled
    as notebook cells (=→ path=, =▶ run=, =output=), and the review document
    =notes/<name>_analysis.org= puts all notes in one page.
-5. *Check* (=make check-tangled=): every file in =CODE= is tangled from a
+5. *Rerun* (=make runs=): every run cell of the notes, in order, from the
+   inputs; =make runs-list= shows the plan.  A run cell only calls tangled
+   scripts, so every result comes from reviewed code.
+6. *Check* (=make check-tangled=): every file in =CODE= is tangled from a
    note and none was edited by hand.  Since review happens on the notes,
    this is also the review-coverage report: an untangled file is code the
    reviewer never saw.
-6. *Review*: open the page, leave comments in the right margin, and use
+7. *Review*: open the page, leave comments in the right margin, and use
    /Copy open/ or /Export .org/.  The comments go back as edits to the
    notes (by you, or by Claude given the exported file), and the loop
    starts again.
@@ -88,12 +91,20 @@ four lines in =template/Makefile=.
   checks each block against the text right above it, not against a long
   paragraph far up the page.  =:shebang= goes on the first block only;
   plumbing (arguments, files) can stay in one block.
-- *Outline first, details later.*  A block with =:noweb yes= can name its
-  pieces, =<<load the data>>=, before they are written; each piece is a
-  named block (=#+name: load the data=, no =:tangle=) placed under the prose
-  that explains it, and tangling puts it in place, indented like its
-  reference.  This is also how a class is split into methods (tangling
-  strips each block's own indentation).
+- *Figures by default.*  Results are shown in figures drawn by the step's
+  script, and mechanisms, geometries and data flows in diagrams.  A diagram
+  is SVG written in the note and tangled with =:comments no= to
+  =diagrams/x.svg=, so it is reviewed like the code; the template's =CODE=
+  includes =diagrams/*.svg=.  Every figure has a =#+NAME:= and a
+  =#+CAPTION:=; the caption describes, the text interprets.
+- *Outline first, details later.*  The default for any long block, or a
+  loop whose body needs explaining: a short block with =:noweb yes= that
+  keeps the control flow and names its pieces, =<<load the data>>=; each
+  piece is a named block (=#+name: load the data=, no =:tangle=, =:eval no=
+  in a session note) placed under the prose and equation that explain it.
+  Tangling puts it in place, indented like its reference, and the page
+  links each reference to its piece and back.  This is also how a class is
+  split into methods (tangling strips each block's own indentation).
 - *Header.*  =#+PROPERTY: header-args :mkdirp yes :comments link :eval no=,
   absolute =:tangle= paths.  Use =:comments no= on blocks whose language
   Emacs =-Q= has no comment syntax for (YAML), or the link line corrupts the
