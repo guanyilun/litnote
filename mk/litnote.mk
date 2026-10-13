@@ -11,6 +11,8 @@
 #   make check           blocks with no output, stale excerpts, rebinds
 #   make tangle          write every :tangle block out to its file
 #   make check-tangled   every CODE file is tangled from a note, none hand-edited
+#   make runs            run every :run cell of the notes, in order (RUNS_ARGS passes options)
+#   make runs-list       list them without running
 #   make clean
 #
 # Export never re-runs babel blocks (lisp/export-note.el); it ships what is
@@ -31,7 +33,7 @@ LN_BATCH  = $(EMACS) -Q --batch -l $(LITNOTE)/lisp/export-note.el --eval
 
 HTML    := $(addprefix $(OUTDIR)/,$(notdir $(SRC:.org=.html)))
 
-.PHONY: html check clean list tangle check-tangled litnote-version
+.PHONY: html check clean list tangle check-tangled litnote-version runs runs-list
 .DEFAULT_GOAL := html
 
 html: $(HTML)
@@ -80,3 +82,11 @@ check-tangled:
 
 litnote-version:
 	@git -C $(LITNOTE) describe --always --dirty
+
+# Run cells in note order: the review document's #+INCLUDE order if REVIEW is set.
+LN_RUNS = $(PYTHON) $(LITNOTE)/py/run-cells.py $(if $(REVIEW),--review $(REVIEW))
+runs:
+	@$(LN_RUNS) $(RUNS_ARGS)
+
+runs-list:
+	@$(LN_RUNS) --dry-run $(RUNS_ARGS)

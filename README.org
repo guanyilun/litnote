@@ -35,11 +35,14 @@ Expensive steps go around this loop:
 4. *Render* (=make=): every note becomes =out/notes/<note>.html=, labelled
    as notebook cells (=→ path=, =▶ run=, =output=), and the review document
    =notes/<name>_analysis.org= puts all notes in one page.
-5. *Check* (=make check-tangled=): every file in =CODE= is tangled from a
+5. *Rerun* (=make runs=): every run cell of the notes, in order, from the
+   inputs; =make runs-list= shows the plan.  A run cell only calls tangled
+   scripts, so every result comes from reviewed code.
+6. *Check* (=make check-tangled=): every file in =CODE= is tangled from a
    note and none was edited by hand.  Since review happens on the notes,
    this is also the review-coverage report: an untangled file is code the
    reviewer never saw.
-6. *Review*: open the page, leave comments in the right margin, and use
+7. *Review*: open the page, leave comments in the right margin, and use
    /Copy open/ or /Export .org/.  The comments go back as edits to the
    notes (by you, or by Claude given the exported file), and the loop
    starts again.

@@ -70,7 +70,16 @@ Every change to a tangled step goes around this loop:
 5. **Write the prose from the output.** Every number in the text comes from
    an included report; re-read the report after each re-run and update
    the text.
-6. **Render and check.** `make` renders `out/notes/*.html` and warns about
+6. **Run everything again.** `make runs` runs every run cell of the notes in
+   order (the review document's include order, then each note top to bottom),
+   each as `bash -e` in the project root, logging to `out/runs/`, and stops at
+   the first failure; `make runs-list` shows the plan. So a run cell must be
+   complete on its own: it calls tangled scripts, creates the directories it
+   writes to, and runs in the foreground. Keep logic out of run cells (loops,
+   comparisons, filters): put it in a tangled script and call that, so every
+   result comes from reviewed code. Mark a cell `:run manual` if it must not be
+   rerun automatically.
+7. **Render and check.** `make` renders `out/notes/*.html` and warns about
    blocks with no output. `make check-tangled` must say *all tangled and in
    sync*; if it reports `EDITED` or `NOT TANGLED`, move the change into a
    note. This is also the review-coverage check: the reviewer reads the
