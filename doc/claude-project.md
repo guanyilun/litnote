@@ -213,6 +213,15 @@ a clause refers to, split it.
   reader sees first. The outline keeps the control flow (loops, `try`,
   writing the outputs) and the trivial lines; a helper that is naturally a
   function stays a function in its own block.
+- **Shared code goes in a library, not in copies.** When a second script
+  needs a function another script has, move it to a library module (e.g.
+  `src/<topic>.py`) and import it from both; don't copy it. The library's
+  blocks stay in the note next to the prose that explains them, with
+  `:tangle` pointing at the library file. Above all, a model used both to
+  simulate and to fit must be one function. Use noweb fragments only for
+  boilerplate that can't be a function (batch headers, shared argument
+  lists). When moving code that produced included outputs, check that the
+  old and new code give the same results, and say so in the note.
 - **Never paste output by hand.** Outputs enter by `#+INCLUDE` of a file a
   run wrote, so they can't drift from the code.
 - **Self-contained.** Don't point to other analysis folders or colleagues'
