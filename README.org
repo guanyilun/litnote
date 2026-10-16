@@ -4,8 +4,9 @@
 Shared tooling for programs and analyses explained through org notes.
 Organize the source around the ideas a reader needs to understand, refine
 those ideas into executable code, and connect important claims to evidence.
-The notes are the source of truth; tangled files and rendered pages are
-outputs.
+The documents are the source of truth for computational reasoning and
+analysis code; explanatory visuals can be maintained separately in
+=diagrams/=. Tangled code and rendered pages are outputs.
 
 Cheap computations can run in a live Python session with =#+RESULTS:=.
 Expensive steps are tangled to scripts, run externally, and their reports
@@ -39,7 +40,10 @@ top-level =.org= files in each directory.
 * Design for understanding
 
 Start with the problem, the intended reader's background, inputs, outputs
-and assumptions. Present the governing idea and the roles of its main
+and assumptions. Write explanatory notes for a beginning graduate student
+in the relevant field: assume general undergraduate preparation, introduce
+specialized terminology, define mathematical symbols, and explain the
+intermediate reasoning. Present the governing idea and the roles of its main
 components, then refine them beside their implementations. Top-down
 exposition is a useful default; choose another order when a definition or
 example first makes the reasoning clearer.
@@ -58,6 +62,9 @@ or readability scores are required.
 - Extract a Noweb chunk when its name clarifies the surrounding argument.
   Keep simple code visible when a jump adds no insight. Functions provide
   callable interfaces; chunks reveal implementations in explanatory stages.
+- Actively use diagrams and plots to explain mechanisms, relationships and
+  algorithmic structure. Prefer readable SVG diagrams for conceptual visuals;
+  introduce each figure and explain what connection it reveals.
 - Keep correctness arguments and focused checks near the claims they
   support. Explain what those checks do and do not establish.
 - Review the overview before expanding every chunk: can the intended reader
@@ -139,8 +146,8 @@ replace the aggregate document with index links. Check the run plan with
 
 * Conventions
 
-- *The note is the reference.*  Every file that contributes to the analysis
-  is the =:tangle= target of a block in =note/*.org= and =analysis/*.org=; =make check-tangled=
+- *The documents are the reference for analysis code.* Computational files
+  are the =:tangle= target of a block in =note/*.org= and =analysis/*.org=; =make check-tangled=
   fails otherwise, and also catches files edited by hand after tangling
   (it restores them and reports).  =CODE= in the Makefile lists the globs
   that count as analysis code.
@@ -158,11 +165,14 @@ replace the aggregate document with index links. Check the run plan with
   explicitly to it. Blocks sharing a =:tangle= path concatenate in order;
   named Noweb chunks allow a different explanatory order. Put =:shebang=
   on the first tangled block only.
-- *Figures where useful.* Use plots to clarify results and diagrams to
-  explain relationships when they help the reader. SVG diagrams can be
-  written in a note and tangled with =:comments no= to =diagrams/x.svg=;
-  the template's =CODE= includes =diagrams/*.svg=. Each figure has a
-  =#+NAME:= and =#+CAPTION:=; the caption describes, the text interprets.
+- *Visual explanation.* Actively use figures to clarify important concepts
+  for a beginning graduate student. Standalone SVGs and optional scripts
+  used only to draw explanatory diagrams can live in =diagrams/=; their
+  source does not need to appear in the note or be tangled. Keep them in
+  version control and outside analysis =CODE= globs. Result-producing code
+  still follows the analysis workflow. Each figure has a =#+NAME:= and
+  =#+CAPTION:=; introduce it in the prose and explain the connection it
+  reveals. Use absolute image paths for inlining in the current exporter.
 - *Refine ideas with Noweb.* An outline with =:noweb yes= names meaningful
   components, such as =<<validate measurements>>=. Each is a named block
   with no =:tangle= and =:eval no= for source fragments, beside its

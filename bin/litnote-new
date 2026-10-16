@@ -16,9 +16,10 @@ DATE=$(date +%F)
 for folder in note analysis notes; do
   [ ! -e "$PROJ/$folder" ] || { echo "litnote-new: $PROJ/$folder already exists" >&2; exit 1; }
 done
-mkdir -p "$PROJ"/{note,analysis,bin,src,scripts,out}
+mkdir -p "$PROJ"/{note,analysis,bin,src,scripts,diagrams,out}
 fill() { sed -e "s#@NAME@#$NAME#g" -e "s#@TITLE@#$TITLE#g" -e "s#@DATE@#$DATE#g" -e "s#@PROJ@#$PROJ#g" -e "s#@LITNOTE@#$LITNOTE#g" "$1" > "$2"; }
 fill "$LITNOTE/template/Makefile"               "$PROJ/Makefile"
+cp "$LITNOTE/template/diagrams/weighted-mean.svg" "$PROJ/diagrams/weighted-mean.svg"
 fill "$LITNOTE/template/readme.org"             "$PROJ/readme.org"
 fill "$LITNOTE/template/note/NAME.org"          "$PROJ/note/$NAME.org"
 fill "$LITNOTE/template/analysis/NAME.org"      "$PROJ/analysis/$NAME.org"

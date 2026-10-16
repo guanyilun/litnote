@@ -6,18 +6,34 @@
 
 * Combine measurements with unequal uncertainty
 
-This example assumes familiarity with means and independent measurement
-errors. We combine measurements of one common quantity into an estimate
+This example is written for a beginning graduate student who knows means,
+variance and independent measurement errors. A standard deviation describes
+measurement uncertainty; its square is the variance. Inverse variance is
+called precision, so a smaller uncertainty gives a larger precision. We combine measurements of one common quantity into an estimate
 and its standard uncertainty. All measurements use the same units. We
 assume independent errors with known, positive standard deviations; the
 reported uncertainty does not include systematic error.
 
 The example uses measurements 1 and 2 with standard deviations 1 and 2.
 The more precise measurement should contribute more to the estimate.
+Figure [[fig:weighted-mean]] shows how both measurements enter one estimate:
+we add their weighted contributions and divide by the combined precision.
+This keeps the answer in the original measurement units.
+
+#+NAME: fig:weighted-mean
+#+CAPTION: /Combining measurements by precision./ Each measurement x and its
+#+CAPTION: uncertainty sigma produce a precision w = 1/sigma squared and a
+#+CAPTION: weighted contribution w x. The contributions and precisions are
+#+CAPTION: summed separately, then their ratio gives the combined estimate.
+[[file:@PROJ@/diagrams/weighted-mean.svg]]
 
 * The governing idea
 
-Minimizing the sum of squared residuals weighted by inverse variance gives
+A residual is the difference between a measurement and a proposed common
+value. Dividing it by its uncertainty expresses that difference in units
+of the expected error. We choose the value minimizing the sum of these
+squared, scaled residuals. Differentiating this sum with respect to the
+common value and setting the derivative to zero gives
 \[ \hat m = \frac{\sum_i w_i x_i}{\sum_i w_i},
    \qquad w_i = \sigma_i^{-2}. \]
 Here =values= contains the measurements \(x_i\), =errors= their standard

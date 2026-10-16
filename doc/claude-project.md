@@ -1,8 +1,8 @@
 # Working in a litnote project
 
 This project is a literate analysis: the org documents in `note/` and `analysis/` are the
-source of truth, and everything else is either tangled from them or written
-by running what was tangled. These rules apply to every litnote project; the
+source of truth for computational reasoning and analysis code. Explanatory
+visuals may be maintained separately in `diagrams/`. These rules apply to every litnote project; the
 project's own `CLAUDE.md` adds what is specific to it (environment, how jobs
 are submitted, where data lives).
 
@@ -48,8 +48,12 @@ prose, headings, equations, named chunks and references; no graph or extra
 annotations are required.
 
 - **Establish the problem and reader.** State the intended behavior, inputs,
-  outputs, assumptions, and what counts as success. Say which background
-  knowledge the explanation assumes.
+  outputs, assumptions, and what counts as success. Write explanatory notes
+  for a beginning graduate student in the relevant field. Assume general
+  undergraduate preparation, not familiarity with this project or its
+  specialized methods. Introduce technical terms, motivate equations, define
+  their symbols, and explain intermediate reasoning rather than skipping
+  directly to a formula or implementation. State any additional prerequisites.
 - **Give the reader a conceptual overview.** Explain the governing idea and
   the roles of the main components before refining their implementation
   when that helps. Top-down exposition is a useful default, not a required
@@ -75,7 +79,8 @@ annotations are required.
 |---|---|---|
 | `note/*.org` | standalone explanations and core algorithms | yes |
 | `analysis/*.org` | executable investigations and evidence | yes |
-| `bin/`, `src/`, `scripts/`, `diagrams/` | tangled implementations | never by hand |
+| `bin/`, `src/`, `scripts/` | tangled implementations | never by hand |
+| `diagrams/` | explanatory SVGs and optional generating scripts | yes |
 | `out/` | generated results and rendered documents | never by hand |
 | `readme.org` | document index, status and open items | yes |
 | `Makefile` | project paths, code globs and `RUN_NOTES` | as needed |
@@ -207,23 +212,24 @@ the full presentation requirements while exploration is ongoing.
   third of them").
 - **Bullets for parallel items only,** each one or two readable sentences,
   not a list of clauses. Use `/Label./` bullets sparingly.
-- **Show it, don't only tell it.** Readers are visual, and a figure with a
-  good caption is worth many paragraphs. Use figures when they clarify the argument, of two
-  kinds:
-  - *Result figures*, drawn by the step's script from its output: the
-    light curve, the fit and its residuals, the distribution with the cut
-    marked. A results section with numbers in a table usually also wants
-    the figure those numbers describe. Prefer one well-designed multi-panel
-    figure to several loose ones.
-  - *Explanatory diagrams* of a mechanism, a geometry or a data flow: what
-    the model is, how the pieces of the pipeline connect, what a selection
-    keeps and drops. Write them as SVG in the note, in a block with
-    `:tangle /abs/project/diagrams/x.svg :comments no`, so the diagram is
-    reviewed source like the code; or draw them with the plotting library
-    when they are built from data. Keep them plain: few colours, labelled
-    parts, readable at page width.
-  When a paragraph explains something spatial, sequential or
-  comparative, ask whether a figure would explain it better, and make it when it does.
+- **Explain visually.** Actively use visualization in explanatory notes.
+  When introducing a mechanism, geometry, conceptual hierarchy, algorithm
+  or data flow, look for a diagram that makes the relationships easier for
+  a beginning graduate student to grasp. Use plots to expose comparisons,
+  uncertainty and behavior. Avoid decorative figures that add no explanation.
+  - *Result figures* come from analysis outputs. Show relevant selections,
+    units and uncertainty; keep their numerical provenance recoverable.
+  - *Explanatory diagrams* can be standalone SVG files in `diagrams/`, linked
+    from the note. Their SVG markup and optional generating scripts do not
+    need to appear in the note or be tangled from it. Keep them in version
+    control, and keep their labels and relationships consistent with the
+    explanation. Scripts used only to draw conceptual illustrations are
+    exempt from analysis-code tangling requirements; scripts computing
+    scientific results are not.
+  Use a few colors, readable labels, arrows with clear meaning, and a
+  layout readable at page width. Introduce each figure in the argument and
+  explain the connection it helps the reader see. Use absolute image paths
+  in Org so the current export pipeline can inline them after moving HTML.
 - **Figures are explained like in a paper: the caption describes, the
   text interprets.** Every figure has a `#+NAME: fig:x` and a `#+CAPTION:`;
   org numbers them, and the text cites them as `Figure [[fig:x]]`, which
@@ -295,7 +301,9 @@ a clause refers to, split it.
   Don't rely on unexplained external folders or colleagues' working files as provenance ("made in ../other", "copied from X's
   directory"). Say what each input is and show the command, tangled here,
   that reproduces it. Scientific references are fine.
-- **Every analysis file is tangled or evaluated in a note.** Code lives in
+- **Analysis code is tangled or evaluated in a document.** Standalone
+  explanatory SVGs and their illustration-only generating scripts are
+  exempt and should stay outside `CODE` globs. Computational code lives in
   notes: session blocks for cheap steps, tangled blocks for scripts. A new
   script is a new block in a note,
   never a new file. Code no longer used moves to `attic/` (with a line in
@@ -377,6 +385,10 @@ Then inspect its refinements:
   boundary cases and shared state?
 - Can they predict a relevant behavioral change without tracing every line?
 - Are supporting arguments and checks easy to find?
+- Can a beginning graduate student follow the terms, equations and steps
+  without relying on unstated specialist or project knowledge?
+- Do diagrams and plots clarify the important relationships, with readable
+  labels and explanations connecting them to the argument?
 - Would splitting, merging, renaming or moving a chunk reduce the effort
   needed to follow the argument?
 
