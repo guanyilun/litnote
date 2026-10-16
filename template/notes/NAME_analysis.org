@@ -5,12 +5,19 @@
 * How to read this
 
 The whole analysis in one document: the notes of this directory, included
-in the order the analysis runs.
+in dependency order for executable run cells. Each note introduces the
+ideas before refining their implementation; named chunks can be presented
+in a different order from the generated source.
 
 Code blocks marked =→ path= are tangled to that file; =▶ run= cells are the
 commands that were run (on a login node or through slurm), and the =output=
 block under each is the file that run wrote.  Hover in the right margin to
 leave a comment; the Comments button copies or exports them as org.
+
+When reviewing, check whether the purpose, assumptions and main reasoning
+are clear, whether code fulfills the stated roles, and whether supporting
+checks are easy to find. Identify specific explanation gaps and suggest
+concrete revisions.
 
 * @TITLE@
 

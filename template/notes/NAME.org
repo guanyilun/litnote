@@ -4,92 +4,133 @@
 #+PROPERTY: header-args :mkdirp yes :comments link
 #+PROPERTY: header-args:python :session @NAME@ :results output
 
-* What this note is for
+* Combine measurements with unequal uncertainty
 
-* A cheap step, as a notebook cell
+This example assumes familiarity with means and independent measurement
+errors. We combine measurements of one common quantity into an estimate
+and its standard uncertainty. All measurements use the same units. We
+assume independent errors with known, positive standard deviations; the
+reported uncertainty does not include systematic error.
 
-Evaluated in the note's python session (=bin/note run=); the output is
-saved under the block.  Every block gets a =#+name:=.
+The example uses measurements 1 and 2 with standard deviations 1 and 2.
+The more precise measurement should contribute more to the estimate.
 
-#+name: setup
-#+begin_src python
-PROJ = '@PROJ@'
-print(PROJ)
-#+end_src
+* The governing idea
 
-* An expensive step, as a tangled script
+Minimizing the sum of squared residuals weighted by inverse variance gives
+\[ \hat m = \frac{\sum_i w_i x_i}{\sum_i w_i},
+   \qquad w_i = \sigma_i^{-2}. \]
+Here =values= contains the measurements \(x_i\), =errors= their standard
+deviations \(\sigma_i\), and =weights= their inverse variances. The
+uncertainty of this linear estimate, under the independence assumption, is
+\( (\sum_i w_i)^{-1/2} \). The estimate has the measurement units;
+weights have inverse squared units.
 
-The reasoning goes here, in prose; the blocks stay bare.  A script is
-tangled (=make tangle=), run outside Emacs, and its output included.  It is
-written in pieces, all tangled to the same file in order, each with its
-explanation right above it.  Figure [[fig:example-flow]] shows what it does.
+The program validates the input, constructs the estimator, checks two
+properties, and reports the example. This outline assembles the executable
+order; the sections below explain the estimator before its input checks.
+Source fragments are not evaluated independently in the session.
 
-#+begin_src xml :tangle @PROJ@/diagrams/example.svg :comments no
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 90" width="520" height="90"
-     font-family="sans-serif" font-size="14">
-  <defs>
-    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
-            markerWidth="7" markerHeight="7" orient="auto">
-      <path d="M0,0 L10,5 L0,10 z" fill="#444"/>
-    </marker>
-  </defs>
-  <g fill="#f4f4f4" stroke="#444">
-    <rect x="10" y="25" width="130" height="40" rx="6"/>
-    <rect x="195" y="25" width="130" height="40" rx="6"/>
-    <rect x="380" y="25" width="130" height="40" rx="6"/>
-  </g>
-  <g stroke="#444" marker-end="url(#arrow)">
-    <line x1="140" y1="45" x2="193" y2="45"/>
-    <line x1="325" y1="45" x2="378" y2="45"/>
-  </g>
-  <g text-anchor="middle" fill="#222">
-    <text x="75" y="50">arguments xᵢ</text>
-    <text x="260" y="50">mean x̄</text>
-    <text x="445" y="50">xᵢ − x̄ per row</text>
-  </g>
-</svg>
-#+end_src
-
-#+NAME: fig:example-flow
-#+CAPTION: /What the example script computes./  The arguments are read as
-#+CAPTION: numbers, their mean is computed, and one row is printed per argument
-#+CAPTION: with its deviation from the mean.
-[[file:@PROJ@/diagrams/example.svg]]
-
-The mean of the arguments, read as numbers: \( \bar{x} = \frac{1}{n} \sum_{i} x_{i} \).
-
-#+begin_src python :tangle @PROJ@/bin/example.py :eval no
-import sys
-
-
-def mean(xs):
-    return sum(xs) / len(xs)
-#+end_src
-
-The script prints the mean, then one row per argument.  A loop whose body
-needs explaining is written as an outline: the loop stays here, and its body
-is a named piece, filled in below under its own explanation.
-
+#+name: complete-program
 #+begin_src python :tangle @PROJ@/bin/example.py :eval no :noweb yes
+import math
 
 
-xs = [float(a) for a in sys.argv[1:]]
-xbar = mean(xs)
-print(f"mean {xbar:g}")
-for x in xs:
-    <<print one value and its deviation>>
+def weighted_mean(values, errors):
+    <<validate measurements>>
+    <<combine by inverse variance>>
+
+
+<<check estimator properties>>
+
+estimate, uncertainty = weighted_mean([1.0, 2.0], [1.0, 2.0])
+print(f"estimate {estimate:g}")
+print(f"uncertainty {uncertainty:.6f}")
+print("checks passed")
 #+end_src
 
-Each row is a value \( x_{i} \) and its deviation from the mean,
-\( x_{i} - \bar{x} \).
+* Construct the estimate
 
-#+name: print one value and its deviation
+Each measurement contributes in proportion to its precision. Dividing the
+weighted sum by the total weight preserves a common input value. The same
+weights determine the reported uncertainty. This chunk consumes validated
+=values= and =errors= and returns both results to the caller.
+
+#+name: combine by inverse variance
 #+begin_src python :eval no
-print(f"{x:8.3f} {x - xbar:+8.3f}")
+weights = [1.0 / error**2 for error in errors]
+total_weight = sum(weights)
+estimate = sum(w * x for w, x in zip(weights, values)) / total_weight
+return estimate, math.sqrt(1.0 / total_weight)
 #+end_src
+
+* Establish valid inputs
+
+The formula requires at least one measurement and one uncertainty per
+measurement. We reject nonfinite values and nonpositive uncertainties
+rather than silently dropping them. This small example accepts finite
+values with representable inverse variances and sums; it does not address
+extreme floating-point ranges or correlated errors.
+
+#+name: validate measurements
+#+begin_src python :eval no
+if not values or len(values) != len(errors):
+    raise ValueError("provide equally sized, nonempty measurements and errors")
+if any(not math.isfinite(x) for x in values):
+    raise ValueError("measurements must be finite")
+if any(not math.isfinite(e) or e <= 0 for e in errors):
+    raise ValueError("uncertainties must be finite and positive")
+#+end_src
+
+* Check the reasoning
+
+With equal uncertainties the weights cancel, recovering the ordinary mean.
+Shifting every measurement by a constant should shift the estimate by that
+constant and leave its uncertainty unchanged. These checks support those
+properties; they do not validate the independence or error model for real
+data. Invalid input must also produce the promised exception.
+
+#+name: check estimator properties
+#+begin_src python :eval no
+mean, uncertainty = weighted_mean([1.0, 3.0], [2.0, 2.0])
+assert math.isclose(mean, 2.0)
+assert math.isclose(uncertainty, math.sqrt(2.0))
+base, base_error = weighted_mean([1.0, 2.0], [1.0, 2.0])
+shifted, shifted_error = weighted_mean([8.0, 9.0], [1.0, 2.0])
+assert math.isclose(shifted, base + 7.0)
+assert math.isclose(shifted_error, base_error)
+try:
+    weighted_mean([1.0], [0.0])
+except ValueError:
+    pass
+else:
+    raise AssertionError("nonpositive uncertainty was accepted")
+#+end_src
+
+* Run and inspect the evidence
+
+This example is cheap enough for a session. We run it externally here to
+demonstrate the tangle, run and include workflow used for expensive steps.
+The run cell contains the command; its report is included directly below.
 
 #+begin_src sh :run login :eval no
-mkdir -p out/example && python bin/example.py 1 2 > out/example/example.txt
+mkdir -p out/example && python bin/example.py > out/example/example.txt
 #+end_src
 
 #+INCLUDE: "@PROJ@/out/example/example.txt" example
+
+Read the estimate against the governing idea: it should lie between the
+measurements and closer to the measurement with smaller uncertainty. Write
+numerical conclusions from the report after running, and revisit them when
+inputs or code change.
+
+* A session calculation
+
+A cheap calculation can instead run directly in the note's Python session
+with =bin/note run=. Its output is saved under the named block. This cell
+is independent of the source fragments above.
+
+#+name: equal-precision-mean
+#+begin_src python
+print((1.0 + 3.0) / 2)
+#+end_src
