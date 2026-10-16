@@ -29,8 +29,11 @@ def note_order(root, review, notes=None):
         return notes
     if review:
         names = INCLUDE.findall(Path(root, review).read_text())
-        return [os.path.relpath(os.path.normpath(os.path.join(root, os.path.dirname(review), n)), root)
-                for n in names]
+        order = [os.path.relpath(os.path.normpath(os.path.join(root, os.path.dirname(review), n)), root)
+                 for n in names]
+        return order + [os.path.relpath(p, root) for folder in ("analysis", "note")
+                        for p in sorted(glob.glob(os.path.join(root, folder, "*.org")))
+                        if os.path.relpath(p, root) not in order]
     return [os.path.relpath(p, root) for folder in ("analysis", "note", "notes")
             for p in sorted(glob.glob(os.path.join(root, folder, "*.org")))]
 

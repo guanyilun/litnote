@@ -533,6 +533,32 @@ FILE is the :tangle target the outline, or the chain of outlines, ends in."
 (advice-add 'org-html-example-block :around #'note/output-label)
 (advice-add 'org-html-fixed-width :around #'note/output-label)
 
+;; Links between documents.  Org turns file:x.org into x.html relative to
+;; the source, but legacy notes/x.org renders to out/notes/x.html while
+;; note/ and analysis/ keep their directory (mk/litnote.mk, ln_html).  So a
+;; link between the two kinds is rewritten to the path between the rendered
+;; pages; links inside the project root only.
+(defun note/render-path (rel)
+  (if (string-prefix-p "notes/" rel) (substring rel 6) rel))
+
+(defun note/org-link (orig link desc info)
+  (let* ((path (org-element-property :path link))
+         (src (plist-get info :input-file))
+         (root (and src (locate-dominating-file src "Makefile"))))
+    (if (and root (equal (org-element-property :type link) "file")
+             (string-suffix-p ".org" path) (not (file-name-absolute-p path)))
+        (let ((target (expand-file-name path (file-name-directory src)))
+              (root (expand-file-name root)))
+          (if (string-prefix-p root target)
+              (let* ((from (file-name-directory (note/render-path (file-relative-name src root))))
+                     (to (note/render-path (file-relative-name target root)))
+                     (copy (org-element-copy link)))
+                (org-element-put-property copy :path (file-relative-name to (or from "./")))
+                (funcall orig copy desc info))
+            (funcall orig link desc info)))
+      (funcall orig link desc info))))
+(advice-add 'org-html-link :around #'note/org-link)
+
 ;; The review-comment layer (lisp/review-comments.html: CSS + JS, kept in
 ;; its own file so it need not be escaped into an elisp string).  Comments
 ;; live in the reader's browser and are exported as an org file.

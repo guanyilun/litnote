@@ -27,6 +27,10 @@ class DocumentLayoutTests(unittest.TestCase):
             (root / 'notes/review.org').write_text('#+INCLUDE: "b.org"\n#+INCLUDE: "a.org"')
             self.assertEqual(runner.note_order(folder, 'notes/review.org'),
                              ['notes/b.org', 'notes/a.org'])
+            (root / 'note').mkdir()
+            (root / 'note/c.org').write_text('#+title: C\n')
+            self.assertEqual(runner.note_order(folder, 'notes/review.org'),
+                             ['notes/b.org', 'notes/a.org', 'note/c.org'])
 
     def test_same_names_keep_distinct_tangle_provenance(self):
         checker = module('check-tangled')
@@ -67,6 +71,19 @@ class DocumentLayoutTests(unittest.TestCase):
             for path in ('out/notes/note/same.html', 'out/notes/analysis/same.html',
                          'out/notes/same.html'):
                 self.assertIn(path, output)
+
+    def test_links_between_legacy_and_role_documents_follow_render_paths(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            for directory in ('note', 'notes'):
+                (root / directory).mkdir()
+            (root / 'note/a.org').write_text('#+title: A\n\n[[file:../notes/b.org][b]]\n')
+            (root / 'notes/b.org').write_text('#+title: B\n\n[[file:../note/a.org][a]]\n')
+            (root / 'Makefile').write_text(f'LITNOTE := {ROOT}\ninclude $(LITNOTE)/mk/litnote.mk\n')
+            subprocess.run(['make', 'out/notes/note/a.html', 'out/notes/b.html'], cwd=root,
+                           stdin=subprocess.DEVNULL, capture_output=True, check=True)
+            self.assertIn('href="../b.html"', (root / 'out/notes/note/a.html').read_text())
+            self.assertIn('href="note/a.html"', (root / 'out/notes/b.html').read_text())
 
 
 if __name__ == '__main__':
