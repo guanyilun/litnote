@@ -1,24 +1,96 @@
 #+title: litnote: literate org notes for any analysis project
 #+OPTIONS: toc:2 num:nil ^:{}
 
-Shared tooling for analyses written as org notes.  Cheap steps are
-notebook cells evaluated in a live python session, with their output in
-=#+RESULTS:=.  Expensive steps (batch jobs, long runs) are tangled to
-scripts, run outside Emacs, and their output files included back.  Either
-way the export reads as an executed notebook, with a comment layer for
-review.  Style after the
-[[https://www.howardism.org/Technical/Emacs/literate-programming-tutorial.html][howardism literate programming tutorial]].
+Shared tooling for programs and analyses explained through org notes.
+Organize the source around the ideas a reader needs to understand, refine
+those ideas into executable code, and connect important claims to evidence.
+The documents are the source of truth for computational reasoning and
+analysis code; explanatory visuals can be maintained separately in
+=diagrams/=. Tangled code and rendered pages are outputs.
+
+Cheap computations can run in a live Python session with =#+RESULTS:=.
+Expensive steps are tangled to scripts, run externally, and their reports
+included back. The HTML brings prose, mathematics, code and evidence
+together with linked Noweb chunks and a comment layer for review.
+
+* Investigation and explanation
+
+Projects have two kinds of document:
+
+- =analysis/= holds working investigations, organized by exploration and
+  execution dependencies. Keep inputs, commands, results and decisions
+  recoverable, including useful failed trials. A polished narrative is not
+  required for every step.
+- =note/= holds standalone explanations, organized around a coherent
+  question, algorithm or argument. Connect purpose, assumptions, reasoning,
+  implementation and evidence. Preserve relevant uncertainty and contrary
+  evidence when presenting conclusions.
+
+A note can draw on several analyses, and an analysis can support several
+notes. Link to or include authoritative material rather than maintaining
+copies. Core algorithms and their explanations belong in =note/=; their
+reusable implementations tangle to =src/= and are imported by analyses.
+
+Review each document individually. =readme.org= links to them and records
+status; there is no combined review document in new projects. =RUN_NOTES=
+in the Makefile lists documents with run cells in dependency order,
+independently of the index or presentation order. Discovery currently covers
+top-level =.org= files in each directory.
+
+* Design for understanding
+
+Start with the problem, the intended reader's background, inputs, outputs
+and assumptions. Write explanatory notes for a beginning graduate student
+in the relevant field: assume general undergraduate preparation, introduce
+specialized terminology, define mathematical symbols, and explain the
+intermediate reasoning. Present the governing idea and the roles of its main
+components, then refine them beside their implementations. Top-down
+exposition is a useful default; choose another order when a definition or
+example first makes the reasoning clearer.
+
+Think of the conceptual structure, the computational dependencies, and the
+exposition connecting them. They need not have identical shapes. A reader
+should be able to find how an idea is implemented and why an important
+operation belongs in the algorithm. Ordinary headings, prose, equations,
+named chunks and references express these connections; no graph annotations
+or readability scores are required.
+
+- Give each major component a meaningful responsibility and explain its
+  contribution to the whole.
+- Explain decisions, assumptions, boundary cases and significant state
+  changes. Connect mathematical symbols and units to code identifiers.
+- Extract a Noweb chunk when its name clarifies the surrounding argument.
+  Keep simple code visible when a jump adds no insight. Functions provide
+  callable interfaces; chunks reveal implementations in explanatory stages.
+- Actively use diagrams and plots to explain mechanisms, relationships and
+  algorithmic structure. Prefer readable SVG diagrams for conceptual visuals;
+  introduce each figure and explain what connection it reveals.
+- Keep correctness arguments and focused checks near the claims they
+  support. Explain what those checks do and do not establish.
+- Review the overview before expanding every chunk: can the intended reader
+  explain the main reasoning, locate assumptions and evidence, and predict
+  a relevant behavioral change? Report specific gaps with concrete revisions.
+
+The scaffold demonstrates this with a weighted mean, its input contract,
+and checks of equal weighting and translation. The full authoring and
+review guide is in =doc/claude-project.md=. These presentation requirements
+apply to explanatory notes; working analyses have the lighter requirements
+above.
+
+Named chunks free explanatory order from tangled source order. Session
+blocks and run cells still require dependency order; =make runs= follows
+=RUN_NOTES= and each document's cell order.
 
 * How the pieces fit together
 
-A project is a directory with =notes/*.org=, a four-line =Makefile= that
+A project is a directory with =note/*.org= and =analysis/*.org=, a small =Makefile= that
 includes =mk/litnote.mk=, and whatever the notes tangle and the runs write.
 Cheap steps are notebook cells (see "The notes daemon" below): edit, run
 in the session with =bin/note=, and the result sits under the block.
 Expensive steps go around this loop:
 
 #+begin_example
-   notes/x.org ──make tangle──▶ bin/ src/ scripts/ ──run (shell, queue)──▶ out/…/report.txt, *.png
+   analysis/x.org ──make tangle──▶ bin/ src/ scripts/ ──run (shell, queue)──▶ out/…/report.txt, *.png
         ▲                                                                        │
         │                                                  #+INCLUDE / [[file:]] │
         │                                                                        ▼
@@ -26,22 +98,22 @@ Expensive steps go around this loop:
 #+end_example
 
 1. *Write* a step in a note: a paragraph saying what and why, then the code
-   in bare blocks with =:tangle /abs/path=, split at its natural pieces with
-   the explanation of each (its equation, its choices) right above it.
+   in bare blocks with =:tangle /abs/path=. Refine meaningful concepts
+   beside their explanations, using named chunks to assemble source order.
 2. *Tangle* (=make tangle=) and *run* the script outside Emacs; it writes a
    report file (and figures) under =out/=.
 3. *Show* the run in the note: a =:run= cell with the exact command, then
    =#+INCLUDE:= of the report.  Write the prose from that output.
-4. *Render* (=make=): every note becomes =out/notes/<note>.html=, labelled
-   as notebook cells (=→ path=, =▶ run=, =output=), and the review document
-   =notes/<name>_analysis.org= puts all notes in one page.
+4. *Render* (=make=): every note becomes =out/notes/<source-path>.html=, labelled
+   as notebook cells (=→ path=, =▶ run=, =output=);
+   documents in =note/= and =analysis/= are reviewed individually.
 5. *Rerun* (=make runs=): every run cell of the notes, in order, from the
    inputs; =make runs-list= shows the plan.  A run cell only calls tangled
    scripts, so every result comes from reviewed code.
 6. *Check* (=make check-tangled=): every file in =CODE= is tangled from a
    note and none was edited by hand.  Since review happens on the notes,
-   this is also the review-coverage report: an untangled file is code the
-   reviewer never saw.
+   this identifies which files have source available in the notes; it
+   does not establish that they were reviewed or understood.
 7. *Review*: open the page, leave comments in the right margin, and use
    /Copy open/ or /Export .org/.  The comments go back as edits to the
    notes (by you, or by Claude given the exported file), and the loop
@@ -56,21 +128,26 @@ Conventions below.
 #+begin_src sh
 ~/software/litnote/bin/litnote-new ~/work/myproject "Some title"
 cd ~/work/myproject && make tangle
-mkdir -p out/example && python bin/example.py 1 2 > out/example/example.txt
+mkdir -p out/example && python bin/example.py > out/example/example.txt
 make
 #+end_src
 
-This writes =Makefile=, =readme.org=, =CLAUDE.md=, =notes/<name>.org= (an
-example of each kind of block) and =notes/<name>_analysis.org= (the review
-document), and links =bin/note=.  The middle line is the example note's
-run cell; =make= fails on its =#+INCLUDE:= until that report exists.  An
-existing project adopts the tooling by replacing its Makefile rules with the
-four lines in =template/Makefile=.
+This writes =Makefile=, =readme.org=, =CLAUDE.md=, an explanatory algorithm
+in =note/<name>.org= and an importing investigation in =analysis/<name>.org=,
+and links =bin/note=. Run the example before rendering its included report.
+The index links to the individual documents. =RUN_NOTES= defaults in the
+scaffold to =analysis/<name>.org=; extend it in dependency order as needed.
+
+Existing projects keep support for =notes/=, =REVIEW= and their existing
+HTML paths. To adopt the new layout, move documents according to their role,
+update links and session commands, replace =REVIEW= with =RUN_NOTES=, and
+replace the aggregate document with index links. Check the run plan with
+=make runs-list= before executing it.
 
 * Conventions
 
-- *The note is the reference.*  Every file that contributes to the analysis
-  is the =:tangle= target of a block in =notes/*.org=; =make check-tangled=
+- *The documents are the reference for analysis code.* Computational files
+  are the =:tangle= target of a block in =note/*.org= and =analysis/*.org=; =make check-tangled=
   fails otherwise, and also catches files edited by hand after tangling
   (it restores them and reports).  =CODE= in the Makefile lists the globs
   that count as analysis code.
@@ -83,28 +160,26 @@ four lines in =template/Makefile=.
   parentheses, the takeaway first in a results paragraph, terms defined in
   plain words, and numbers said in words when that helps ("about a
   third").  The full guide is "Writing the prose" in =doc/claude-project.md=.
-- *Explanations interleaved with the code.*  A file is tangled from several
-  blocks with the same =:tangle= path, one per natural piece (a function or
-  a few related ones); org concatenates them in order.  Above each block,
-  the prose it needs: the equation it implements, with its symbols tied to
-  the names in the code, the units, and the choices it makes.  A reader
-  checks each block against the text right above it, not against a long
-  paragraph far up the page.  =:shebang= goes on the first block only;
-  plumbing (arguments, files) can stay in one block.
-- *Figures by default.*  Results are shown in figures drawn by the step's
-  script, and mechanisms, geometries and data flows in diagrams.  A diagram
-  is SVG written in the note and tangled with =:comments no= to
-  =diagrams/x.svg=, so it is reviewed like the code; the template's =CODE=
-  includes =diagrams/*.svg=.  Every figure has a =#+NAME:= and a
-  =#+CAPTION:=; the caption describes, the text interprets.
-- *Outline first, details later.*  The default for any long block, or a
-  loop whose body needs explaining: a short block with =:noweb yes= that
-  keeps the control flow and names its pieces, =<<load the data>>=; each
-  piece is a named block (=#+name: load the data=, no =:tangle=, =:eval no=
-  in a session note) placed under the prose and equation that explain it.
-  Tangling puts it in place, indented like its reference, and the page
-  links each reference to its piece and back.  This is also how a class is
-  split into methods (tangling strips each block's own indentation).
+- *Explanation and implementation together.* Choose block boundaries by
+  conceptual responsibility. Put rationale beside the relevant code or link
+  explicitly to it. Blocks sharing a =:tangle= path concatenate in order;
+  named Noweb chunks allow a different explanatory order. Put =:shebang=
+  on the first tangled block only.
+- *Visual explanation.* Actively use figures to clarify important concepts
+  for a beginning graduate student. Standalone SVGs and optional scripts
+  used only to draw explanatory diagrams can live in =diagrams/=; their
+  source does not need to appear in the note or be tangled. Keep them in
+  version control and outside analysis =CODE= globs. Result-producing code
+  still follows the analysis workflow. Each figure has a =#+NAME:= and
+  =#+CAPTION:=; introduce it in the prose and explain the connection it
+  reveals. Use absolute image paths for inlining in the current exporter.
+- *Refine ideas with Noweb.* An outline with =:noweb yes= names meaningful
+  components, such as =<<validate measurements>>=. Each is a named block
+  with no =:tangle= and =:eval no= for source fragments, beside its
+  explanation. Tangling supplies the reference's indentation, and the page
+  links references to chunks and back. Length alone does not require
+  extraction; avoid needless fragmentation. Reusable behavior belongs in
+  library functions, whose implementations can themselves use chunks.
 - *Header.*  =#+PROPERTY: header-args :mkdirp yes :comments link :eval no=,
   absolute =:tangle= paths.  Use =:comments no= on blocks whose language
   Emacs =-Q= has no comment syntax for (YAML), or the link line corrupts the
@@ -117,25 +192,23 @@ four lines in =template/Makefile=.
   only describes what is plotted (data, selection, axes, units, colours,
   markers), which the code fixes; what the figure shows goes in the results
   text, which cites it as =Figure [[fig:x]]= and is backed by the report.
-- *One review document.*  =notes/<name>_analysis.org= includes the others
-  with =#+INCLUDE: "x.org" :lines "N-" :minlevel 2=, where N skips that
-  note's header lines.  Each include gets a level-1 heading above it (the
-  note's title), since =:minlevel 2= puts the note's sections one level down.  Set =REVIEW= in the Makefile so it rebuilds when
-  any included note changes.
-- *Self-contained.*  No provenance pointers to other analysis folders or to
-  colleagues' working files; say what each input is and show the command
-  that reproduces it.  Scientific references are fine.
+- *Individual documents.* Use =readme.org= as an index and review each
+  document's HTML. Reading order is independent of =RUN_NOTES= execution
+  order. Include or link evidence at its authoritative location.
+- *Self-contained.*  Identify inputs and how to reproduce them. Links between this
+  project's notes and analyses are encouraged; avoid relying on unexplained
+  files from other projects or colleagues' working directories.  Scientific references are fine.
 - *Equations* as =\( \)= / =\[ \]= with =^:{}= in =#+OPTIONS=.
 
 * What the export does
 
-=make= renders every note and =readme.org= to =out/notes/*.html=, one
+=make= renders every note and =readme.org= to =out/notes/{note,analysis}/*.html= and =out/notes/readme.html=, one
 self-contained file each (figures inlined as base64):
 
 - Export never runs babel (=org-export-use-babel nil=); it shows what is in
   the buffer or included from files.
 - Tangle blocks are labelled =→ path= (relative to the project root, the
-  directory above =notes/=); =:run= blocks =▶ run (where)=; the example block
+  directory above =note/= or =analysis/=); =:run= blocks =▶ run (where)=; the example block
   after a run, or a =#+RESULTS:=, =output=.  A block that a =:noweb= outline
   includes is labelled =⟨name⟩ in → path=; each =<<name>>= in the outline
   links to it, and the name in its label links back to the outline.
@@ -194,7 +267,7 @@ live session, held by an Emacs daemon so it survives between commands:
 
 #+begin_src sh
 bin/note start              # emacs --daemon=note-<project>
-bin/note open notes/x.org
+bin/note open analysis/x.org
 bin/note stale              # blocks changed since the last run, and empty results
 bin/note run                # re-run from the first changed block
 bin/note py 'print(x)'      # evaluate in the note's interpreter

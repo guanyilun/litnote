@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Talk to the note daemon.
 #
-# Run from anywhere inside a project (a directory with notes/).  The daemon is
+# Run from anywhere inside a project (a directory with note/, analysis/, or legacy notes/).  The daemon is
 # named note-<project dir>; override with NOTE_SERVER.
 #
 #   bin/note start                       start the daemon for this project
-#   bin/note open notes/x.org
+#   bin/note open analysis/x.org
 #   bin/note stale                       what would re-run, and what has no output
 #   bin/note run                         re-run from the first changed block down
 #   bin/note section "The fit"      one subtree, trusting nothing above matters
@@ -23,8 +23,8 @@ set -euo pipefail
 
 LITNOTE=$(cd "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/.." && pwd)
 HERE=$PWD
-while [ "$HERE" != / ] && [ ! -d "$HERE/notes" ]; do HERE=$(dirname "$HERE"); done
-[ -d "$HERE/notes" ] || { echo "note: no notes/ directory above $PWD" >&2; exit 2; }
+while [ "$HERE" != / ] && [ ! -d "$HERE/note" ] && [ ! -d "$HERE/analysis" ] && [ ! -d "$HERE/notes" ]; do HERE=$(dirname "$HERE"); done
+{ [ -d "$HERE/note" ] || [ -d "$HERE/analysis" ] || [ -d "$HERE/notes" ]; } || { echo "note: no note/, analysis/, or notes/ directory above $PWD" >&2; exit 2; }
 SERVER=${NOTE_SERVER:-note-$(basename "$HERE")}
 
 ev() { emacsclient -s "$SERVER" --eval "$1"; }

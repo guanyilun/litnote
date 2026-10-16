@@ -1,0 +1,126 @@
+#+TITLE: @TITLE@
+#+DATE: @DATE@
+#+OPTIONS: toc:2 num:t ^:{} tex:t
+#+PROPERTY: header-args :mkdirp yes :comments link
+#+PROPERTY: header-args:python :session @NAME@ :results output
+
+* Combine measurements with unequal uncertainty
+
+This example is written for a beginning graduate student who knows means,
+variance and independent measurement errors. A standard deviation describes
+measurement uncertainty; its square is the variance. Inverse variance is
+called precision, so a smaller uncertainty gives a larger precision. We combine measurements of one common quantity into an estimate
+and its standard uncertainty. All measurements use the same units. We
+assume independent errors with known, positive standard deviations; the
+reported uncertainty does not include systematic error.
+
+The example uses measurements 1 and 2 with standard deviations 1 and 2.
+The more precise measurement should contribute more to the estimate.
+Figure [[fig:weighted-mean]] shows how both measurements enter one estimate:
+we add their weighted contributions and divide by the combined precision.
+This keeps the answer in the original measurement units.
+
+#+NAME: fig:weighted-mean
+#+CAPTION: /Combining measurements by precision./ Each measurement x and its
+#+CAPTION: uncertainty sigma produce a precision w = 1/sigma squared and a
+#+CAPTION: weighted contribution w x. The contributions and precisions are
+#+CAPTION: summed separately, then their ratio gives the combined estimate.
+[[file:@PROJ@/diagrams/weighted-mean.svg]]
+
+* The governing idea
+
+A residual is the difference between a measurement and a proposed common
+value. Dividing it by its uncertainty expresses that difference in units
+of the expected error. We choose the value minimizing the sum of these
+squared, scaled residuals. Differentiating this sum with respect to the
+common value and setting the derivative to zero gives
+\[ \hat m = \frac{\sum_i w_i x_i}{\sum_i w_i},
+   \qquad w_i = \sigma_i^{-2}. \]
+Here =values= contains the measurements \(x_i\), =errors= their standard
+deviations \(\sigma_i\), and =weights= their inverse variances. The
+uncertainty of this linear estimate, under the independence assumption, is
+\( (\sum_i w_i)^{-1/2} \). The estimate has the measurement units;
+weights have inverse squared units.
+
+The program validates the input, constructs the estimator, checks two
+properties. The working analysis imports the library and reports an example. This outline assembles the executable
+order; the sections below explain the estimator before its input checks.
+Source fragments are not evaluated independently in the session.
+
+#+name: complete-program
+#+begin_src python :tangle @PROJ@/src/estimators.py :eval no :noweb yes
+import math
+
+
+def weighted_mean(values, errors):
+    <<validate measurements>>
+    <<combine by inverse variance>>
+
+
+<<check estimator properties>>
+#+end_src
+
+* Construct the estimate
+
+Each measurement contributes in proportion to its precision. Dividing the
+weighted sum by the total weight preserves a common input value. The same
+weights determine the reported uncertainty. This chunk consumes validated
+=values= and =errors= and returns both results to the caller.
+
+#+name: combine by inverse variance
+#+begin_src python :eval no
+weights = [1.0 / error**2 for error in errors]
+total_weight = sum(weights)
+estimate = sum(w * x for w, x in zip(weights, values)) / total_weight
+return estimate, math.sqrt(1.0 / total_weight)
+#+end_src
+
+* Establish valid inputs
+
+The formula requires at least one measurement and one uncertainty per
+measurement. We reject nonfinite values and nonpositive uncertainties
+rather than silently dropping them. This small example accepts finite
+values with representable inverse variances and sums; it does not address
+extreme floating-point ranges or correlated errors.
+
+#+name: validate measurements
+#+begin_src python :eval no
+if not values or len(values) != len(errors):
+    raise ValueError("provide equally sized, nonempty measurements and errors")
+if any(not math.isfinite(x) for x in values):
+    raise ValueError("measurements must be finite")
+if any(not math.isfinite(e) or e <= 0 for e in errors):
+    raise ValueError("uncertainties must be finite and positive")
+#+end_src
+
+* Check the reasoning
+
+With equal uncertainties the weights cancel, recovering the ordinary mean.
+Shifting every measurement by a constant should shift the estimate by that
+constant and leave its uncertainty unchanged. These checks support those
+properties; they do not validate the independence or error model for real
+data. Invalid input must also produce the promised exception.
+
+#+name: check estimator properties
+#+begin_src python :eval no
+mean, uncertainty = weighted_mean([1.0, 3.0], [2.0, 2.0])
+assert math.isclose(mean, 2.0)
+assert math.isclose(uncertainty, math.sqrt(2.0))
+base, base_error = weighted_mean([1.0, 2.0], [1.0, 2.0])
+shifted, shifted_error = weighted_mean([8.0, 9.0], [1.0, 2.0])
+assert math.isclose(shifted, base + 7.0)
+assert math.isclose(shifted_error, base_error)
+try:
+    weighted_mean([1.0], [0.0])
+except ValueError:
+    pass
+else:
+    raise AssertionError("nonpositive uncertainty was accepted")
+#+end_src
+
+* Applying the algorithm
+
+The working analysis at [[file:../analysis/@NAME@.org]] imports the generated
+library, explores a concrete pair of measurements, and records its output.
+The algorithm and its checks above are the authoritative implementation;
+the analysis does not maintain a second copy.

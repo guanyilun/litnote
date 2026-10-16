@@ -3,11 +3,14 @@
 
 * Where things stand (@DATE@)
 
-* Notes
+* Documents
 
-| note                        | what it is                                   |
-|-----------------------------+----------------------------------------------|
-| [[file:notes/@NAME@_analysis.org]] | the review document: includes every other note |
-| [[file:notes/@NAME@.org]]          | the analysis                                   |
+| document | purpose |
+|----------+---------|
+| [[file:note/@NAME@.org]] | Weighted-mean algorithm, assumptions and checks |
+| [[file:analysis/@NAME@.org]] | Exploration using the generated library |
+
+Documents are reviewed individually. This index is for navigation;
+=RUN_NOTES= in the Makefile determines execution order independently.
 
 * Open items

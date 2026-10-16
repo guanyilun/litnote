@@ -3,7 +3,7 @@
 #
 #   LITNOTE  := $(HOME)/software/litnote
 #   CODE     := bin/*.py src/*.py scripts/*.sbatch scripts/*.sh
-#   REVIEW   := notes/<name>_analysis.org      # optional: includes every other note
+#   RUN_NOTES := analysis/inputs.org analysis/compare.org # dependency order
 #   include $(LITNOTE)/mk/litnote.mk
 #
 #   make                 notes + readme -> out/notes/*.html
@@ -22,7 +22,9 @@ LITNOTE ?= $(patsubst %/mk/,%,$(dir $(lastword $(MAKEFILE_LIST))))
 EMACS   ?= emacs
 PYTHON  ?= python3
 OUTDIR  ?= out/notes
-NOTES   ?= $(wildcard notes/*.org)
+NOTES   ?= $(wildcard note/*.org analysis/*.org notes/*.org)
+# Explicit dependency order, independent of document/index order.
+RUN_NOTES ?= $(wildcard analysis/*.org note/*.org notes/*.org)
 SRC     ?= $(NOTES) $(wildcard readme.org)
 CODE    ?= bin/*.py src/*.py scripts/*.sbatch scripts/*.sh
 
@@ -31,7 +33,9 @@ LN_POST  := $(LITNOTE)/py/highlight-html.py $(LITNOTE)/py/inline-images.py
 LN_CHECK := $(LITNOTE)/py/check-results.py $(LITNOTE)/py/check-excerpts.py $(LITNOTE)/py/check-rebinds.py
 LN_BATCH  = $(EMACS) -Q --batch -l $(LITNOTE)/lisp/export-note.el --eval
 
-HTML    := $(addprefix $(OUTDIR)/,$(notdir $(SRC:.org=.html)))
+# Preserve the new source directories; retain legacy notes/*.html URLs.
+ln_html = $(OUTDIR)/$(patsubst notes/%,%,$(1:.org=.html))
+HTML    := $(foreach s,$(SRC),$(call ln_html,$(s)))
 
 .PHONY: html check clean list tangle check-tangled litnote-version runs runs-list
 .DEFAULT_GOAL := html
@@ -46,11 +50,12 @@ check:
 # Emacs writes the export next to the source, so build there and move.
 # Figures are inlined as base64, leaving one portable file.
 define ln_export_rule
-$(OUTDIR)/$(notdir $(basename $(1))).html: $(1) $(LN_EL) $(LN_POST) $(LN_CHECK) | $(OUTDIR)
+$(call ln_html,$(1)): $(1) $(LN_EL) $(LN_POST) $(LN_CHECK) | $(OUTDIR)
 	@$$(PYTHON) $(LITNOTE)/py/check-results.py $(1)
 	@$$(PYTHON) $(LITNOTE)/py/check-excerpts.py --quiet $(1) || true
 	@$$(PYTHON) $(LITNOTE)/py/check-rebinds.py $(1) | grep -v '^.*no hazardous' || true
 	$$(LN_BATCH) '(note/export-html "$(1)")'
+	mkdir -p $$(dir $$@)
 	mv $(basename $(1)).html $$@
 	$$(PYTHON) $(LITNOTE)/py/highlight-html.py $$@
 	$$(PYTHON) $(LITNOTE)/py/inline-images.py $$@
@@ -83,8 +88,9 @@ check-tangled:
 litnote-version:
 	@git -C $(LITNOTE) describe --always --dirty
 
-# Run cells in note order: the review document's #+INCLUDE order if REVIEW is set.
-LN_RUNS = $(PYTHON) $(LITNOTE)/py/run-cells.py $(if $(REVIEW),--review $(REVIEW))
+# RUN_NOTES controls execution, independently of presentation.
+# REVIEW remains supported for existing projects.
+LN_RUNS = $(PYTHON) $(LITNOTE)/py/run-cells.py $(if $(REVIEW),--review $(REVIEW),--notes $(RUN_NOTES))
 runs:
 	@$(LN_RUNS) $(RUNS_ARGS)
 

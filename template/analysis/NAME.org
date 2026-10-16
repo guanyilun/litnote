@@ -1,0 +1,56 @@
+#+TITLE: @TITLE@: working analysis
+#+DATE: @DATE@
+#+OPTIONS: toc:2 num:t ^:{} tex:t
+#+PROPERTY: header-args :mkdirp yes :comments link
+#+PROPERTY: header-args:python :session @NAME@ :results output
+
+* Question and inputs
+
+How does unequal uncertainty affect the combined estimate? We explore
+measurements 1 and 2 with standard deviations 1 and 2. The algorithm,
+assumptions and checks are explained in [[file:../note/@NAME@.org]].
+
+* Run the example
+
+This script imports the library tangled from the explanatory note. Its
+assertions also run on import in this small example. For a larger library,
+put automated checks in a separately tangled test module.
+
+#+name: compare-measurements
+#+begin_src python :tangle @PROJ@/bin/example.py :eval no
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+from estimators import weighted_mean
+
+estimate, uncertainty = weighted_mean([1.0, 2.0], [1.0, 2.0])
+print(f"estimate {estimate:g}")
+print(f"uncertainty {uncertainty:.6f}")
+print("checks passed")
+#+end_src
+
+This calculation is cheap; the external run demonstrates the workflow also
+used for expensive steps. Run from the project root after =make tangle=.
+
+#+begin_src sh :run login :eval no
+mkdir -p out/example && python bin/example.py > out/example/example.txt
+#+end_src
+
+#+INCLUDE: "@PROJ@/out/example/example.txt" example
+
+* Interpretation and next questions
+
+After running, compare the estimate with the two inputs. Is it closer to
+the more precise measurement? Record conclusions from the report, and
+retain relevant diagnostics and unsuccessful trials as exploration grows.
+
+* A quick session comparison
+
+An equal-weight baseline can run in the live session with =bin/note run=.
+This cell is independent of the external run above.
+
+#+name: equal-precision-mean
+#+begin_src python
+print((1.0 + 2.0) / 2)
+#+end_src

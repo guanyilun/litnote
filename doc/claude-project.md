@@ -1,21 +1,92 @@
 # Working in a litnote project
 
-This project is a literate analysis: the org notes in `notes/` are the
-source of truth, and everything else is either tangled from them or written
-by running what was tangled. These rules apply to every litnote project; the
+This project is a literate analysis: the org documents in `note/` and `analysis/` are the
+source of truth for computational reasoning and analysis code. Explanatory
+visuals may be maintained separately in `diagrams/`. These rules apply to every litnote project; the
 project's own `CLAUDE.md` adds what is specific to it (environment, how jobs
 are submitted, where data lives).
 
+## Two document roles
+
+- **`analysis/`: investigation.** Organize working analyses around exploration
+  and execution dependencies. Record questions, inputs, commands, results,
+  decisions and relevant unsuccessful trials. Keep computations recoverable;
+  a polished narrative is not required for every exploratory step.
+- **`note/`: explanation.** Each note presents a coherent question, algorithm
+  or argument in the order that best supports understanding. Apply the
+  explanatory design and comprehension review below to these documents.
+  Preserve uncertainty and contrary evidence relevant to the conclusions.
+
+One note can draw on several analyses and one analysis can support several
+notes. Link to or include authoritative evidence rather than copying code
+or results. Keep stable algorithms and their explanations in `note/` and
+tangle reusable implementations to `src/` for analyses to import. There is
+no separate literate `library/` category. An analysis can be developed into
+a note as understanding stabilizes; avoid leaving two maintained copies.
+
+Review documents individually. `readme.org` is the navigation and status
+index, not a concatenation of every document. Presentation order does not
+set execution order: list documents with run cells in dependency order in
+`RUN_NOTES` in the Makefile. Within each document, run cells and session
+blocks retain their execution dependencies. Run plans and source discovery
+currently cover top-level `.org` files in each directory.
+
+## Design the explanation first
+
+Organize the program around the ideas the intended reader needs to
+understand. Explain how those ideas justify and refine one another,
+connect them to executable code, and show the evidence supporting
+important claims. Tangling assembles the executable source; the note
+presents the reasoning in the order that best supports understanding.
+
+Think of three connected structures: the concepts and their justifications,
+the computation and its dependencies, and the exposition that connects
+them. Good alignment means the reader can find how a concept is implemented
+and why an important computation belongs in the algorithm. These structures
+need not have identical shapes. Express their connections through ordinary
+prose, headings, equations, named chunks and references; no graph or extra
+annotations are required.
+
+- **Establish the problem and reader.** State the intended behavior, inputs,
+  outputs, assumptions, and what counts as success. Write explanatory notes
+  for a beginning graduate student in the relevant field. Assume general
+  undergraduate preparation, not familiarity with this project or its
+  specialized methods. Introduce technical terms, motivate equations, define
+  their symbols, and explain intermediate reasoning rather than skipping
+  directly to a formula or implementation. State any additional prerequisites.
+- **Give the reader a conceptual overview.** Explain the governing idea and
+  the roles of the main components before refining their implementation
+  when that helps. Top-down exposition is a useful default, not a required
+  order: a motivating example or definition may need to come first.
+- **Make each abstraction earn its name.** A chunk should represent a
+  meaningful responsibility. Explain how it contributes to its parent
+  algorithm. Extract it when hiding the details clarifies the surrounding
+  reasoning; keep straightforward lines visible when a jump adds no insight.
+  Split when responsibilities diverge, and merge needless fragments.
+- **Explain decisions and dependencies.** Say why the method applies, which
+  assumptions justify an approximation, and what must remain true. Make
+  significant inputs, outputs and state changes clear, especially variables
+  shared across Noweb chunks. Do not narrate obvious syntax.
+- **Connect mathematics to implementation.** Define symbols and units, map
+  them to code identifiers, and explain numerical choices and boundary cases.
+- **Keep claims and evidence connected.** Put correctness arguments, focused
+  tests and numerical checks near the claims they support, with their limits.
+  A successful run alone does not establish correctness.
+
 ## Layout
 
-| path | what | edit? |
+| path | role | edit? |
 |---|---|---|
-| `notes/*.org` | the analysis: prose, code blocks, run cells, included outputs | **yes, the only place** |
-| `notes/<name>_analysis.org` | the review document; `#+INCLUDE`s the other notes | when notes are added or reordered |
-| `bin/`, `src/`, `scripts/`, `diagrams/`, … | code and SVG diagrams tangled from the notes | never by hand |
-| `out/` | files written by runs (reports, figures); `out/notes/*.html` from `make` | never by hand |
-| `readme.org` | where things stand, open items, notes table | yes |
-| `Makefile` | four lines: `LITNOTE`, `CODE`, `REVIEW`, `include` | rarely (`CODE` globs) |
+| `note/*.org` | standalone explanations and core algorithms | yes |
+| `analysis/*.org` | executable investigations and evidence | yes |
+| `bin/`, `src/`, `scripts/` | tangled implementations | never by hand |
+| `diagrams/` | explanatory SVGs and optional generating scripts | yes |
+| `out/` | generated results and rendered documents | never by hand |
+| `readme.org` | document index, status and open items | yes |
+| `Makefile` | project paths, code globs and `RUN_NOTES` | as needed |
+
+Existing `notes/` projects and their `REVIEW` setting remain supported;
+new projects use the two roles above and do not create a combined document.
 
 ## Two kinds of step
 
@@ -40,10 +111,9 @@ Every change to a tangled step goes around this loop:
    ```org
    #+begin_src python :tangle /abs/project/bin/fit.py
    ```
-   A script with more than one idea in it is several blocks tangled to the
-   same file, in order, with the explanation of each piece (its equation,
-   the choice it makes) in the prose right above it; see "Explanations
-   interleaved with the code" below.
+   Start with the problem and conceptual overview, then refine meaningful
+   components beside their explanations. Use named Noweb chunks when the
+   reading order differs from executable order; see "Rules" below.
 2. **Tangle.** `make tangle` writes every block to its file.
 3. **Run outside Emacs.** Run the tangled script in a shell or through the
    batch queue, and have it write its output to a report file under
@@ -71,7 +141,7 @@ Every change to a tangled step goes around this loop:
    an included report; re-read the report after each re-run and update
    the text.
 6. **Run everything again.** `make runs` runs every run cell of the notes in
-   order (the review document's include order, then each note top to bottom),
+   order (`RUN_NOTES` order, then each document top to bottom),
    each as `bash -e` in the project root, logging to `out/runs/`, and stops at
    the first failure; `make runs-list` shows the plan. So a run cell must be
    complete on its own: it calls tangled scripts, creates the directories it
@@ -79,11 +149,11 @@ Every change to a tangled step goes around this loop:
    comparisons, filters): put it in a tangled script and call that, so every
    result comes from reviewed code. Mark a cell `:run manual` if it must not be
    rerun automatically.
-7. **Render and check.** `make` renders `out/notes/*.html` and warns about
+7. **Render and check.** `make` renders `out/notes/` HTML files and warns about
    blocks with no output. `make check-tangled` must say *all tangled and in
    sync*; if it reports `EDITED` or `NOT TANGLED`, move the change into a
-   note. This is also the review-coverage check: the reviewer reads the
-   notes, so a file that isn't tangled from one is code nobody reviewed.
+   document. This checks that code is available in the review source, not that
+   a reader has reviewed or understood it.
    Keep every analysis path in `CODE`, even when some files are knowingly
    left out, so the report stays an honest list of what review doesn't
    cover.
@@ -96,7 +166,7 @@ held open by an Emacs daemon, and their output is the block's
 `bin/note`, never by editing results:
 
 ```sh
-bin/note start && bin/note open notes/x.org
+bin/note start && bin/note open analysis/x.org
 bin/note stale              # blocks changed since the last run, and empty results
 bin/note run                # re-run from the first changed block to the end
 bin/note block name1 name2  # only these, when you know nothing above changed
@@ -104,7 +174,7 @@ bin/note py 'print(x)'      # a one-off in the same interpreter
 ```
 
 - Give every block a `#+name:` so its results stay attached when text is
-  inserted above it; `$LITNOTE/py/name-blocks.py --write notes/x.org` adds
+  inserted above it; `$LITNOTE/py/name-blocks.py --write analysis/x.org` adds
   names and re-anchors results.
 - Mark blocks that legitimately print nothing `:eval no` or `:results
   silent`, so `make`'s empty-result warning stays meaningful.
@@ -116,16 +186,19 @@ bin/note py 'print(x)'      # a one-off in the same interpreter
 
 ## Writing the prose
 
-A note is read by a person who wants to follow the reasoning, so write it
+An explanatory note is read by a person who wants to follow the reasoning, so write it
 the way you would explain the analysis to a colleague. This is the default
-for every note, new sections and rewrites alike.
+for `note/`, new sections and rewrites alike. Working analyses need enough
+context to reproduce and interpret the investigation; they need not satisfy
+the full presentation requirements while exploration is ongoing.
 
 - **Explain the analysis, not the work.** A note walks the reader through
   the analysis and explains what the results show: the question, the method
   as a choice, the figure, the interpretation. It is not a log of how the
   work was done (what was ported, what matched, which version was used).
-  Verification belongs in a note of its own, such as a checks note that
-  compares with an earlier or published version.
+  Keep correctness arguments and focused checks near the claims they
+  support. Extensive regression comparisons or validation studies can live
+  in a separate checks note, linked from the relevant explanation.
 - **Think it through in order.** Say what we want to know and why, then
   what we did, then what we found. Short paragraphs.
 - **Plain words, short sentences.** One idea per sentence. Don't chain
@@ -139,23 +212,24 @@ for every note, new sections and rewrites alike.
   third of them").
 - **Bullets for parallel items only,** each one or two readable sentences,
   not a list of clauses. Use `/Label./` bullets sparingly.
-- **Show it, don't only tell it.** Readers are visual, and a figure with a
-  good caption is worth many paragraphs. Make figures by default, of two
-  kinds:
-  - *Result figures*, drawn by the step's script from its output: the
-    light curve, the fit and its residuals, the distribution with the cut
-    marked. A results section with numbers in a table usually also wants
-    the figure those numbers describe. Prefer one well-designed multi-panel
-    figure to several loose ones.
-  - *Explanatory diagrams* of a mechanism, a geometry or a data flow: what
-    the model is, how the pieces of the pipeline connect, what a selection
-    keeps and drops. Write them as SVG in the note, in a block with
-    `:tangle /abs/project/diagrams/x.svg :comments no`, so the diagram is
-    reviewed source like the code; or draw them with the plotting library
-    when they are built from data. Keep them plain: few colours, labelled
-    parts, readable at page width.
-  When a paragraph explains something spatial, sequential or
-  comparative, ask whether a figure would explain it better, and make it.
+- **Explain visually.** Actively use visualization in explanatory notes.
+  When introducing a mechanism, geometry, conceptual hierarchy, algorithm
+  or data flow, look for a diagram that makes the relationships easier for
+  a beginning graduate student to grasp. Use plots to expose comparisons,
+  uncertainty and behavior. Avoid decorative figures that add no explanation.
+  - *Result figures* come from analysis outputs. Show relevant selections,
+    units and uncertainty; keep their numerical provenance recoverable.
+  - *Explanatory diagrams* can be standalone SVG files in `diagrams/`, linked
+    from the note. Their SVG markup and optional generating scripts do not
+    need to appear in the note or be tangled from it. Keep them in version
+    control, and keep their labels and relationships consistent with the
+    explanation. Scripts used only to draw conceptual illustrations are
+    exempt from analysis-code tangling requirements; scripts computing
+    scientific results are not.
+  Use a few colors, readable labels, arrows with clear meaning, and a
+  layout readable at page width. Introduce each figure in the argument and
+  explain the connection it helps the reader see. Use absolute image paths
+  in Org so the current export pipeline can inline them after moving HTML.
 - **Figures are explained like in a paper: the caption describes, the
   text interprets.** Every figure has a `#+NAME: fig:x` and a `#+CAPTION:`;
   org numbers them, and the text cites them as `Figure [[fig:x]]`, which
@@ -190,51 +264,52 @@ a clause refers to, split it.
   explanatory comments or docstrings in tangled blocks; the paragraph above
   the block explains. Keep only what the code needs to work (e.g. a
   `__doc__` that argparse prints).
-- **Explanations interleaved with the code.** Don't put one paragraph above a
-  long block and leave the reader to match it to the code. Split a file into
-  blocks at its natural pieces (a function or a few related ones), all with
-  the same `:tangle` path; org concatenates them in order, so the tangled
-  file is the same. Before each block, the prose that block needs: the
-  equation it implements, in the note's math (`\begin{equation*}`), with its
-  symbols tied to the names in the code; the units; the choice it makes and
-  why. A reader should be able to check each block against the text right
-  above it. Put `:shebang` on the first block of a script only. Pure
-  plumbing (argument parsing, reading and writing files) can stay in one
-  block with a sentence on what it reads and writes.
-- **Long blocks are written outline-first (noweb).** When a block would be
-  long, or a loop or branch holds more than a few lines that need their own
-  explanation, write the block as a short outline with `:noweb yes` and put
-  each non-trivial piece in a named chunk: `<<solve the segment and apply
-  the cut>>`. Each chunk is a `#+name:` block with no `:tangle` (and `:eval
-  no` in a session note), placed under the prose and equation that explain
-  it; tangling puts it in place with the indentation of its reference, and
-  the page links each reference to its chunk and back. Chunks can hold
-  chunks. Name them as plain-language steps, since the outline is what the
-  reader sees first. The outline keeps the control flow (loops, `try`,
-  writing the outputs) and the trivial lines; a helper that is naturally a
-  function stays a function in its own block.
+- **Interleave explanation and implementation.** Choose block boundaries
+  by conceptual responsibility, rather than mechanically splitting at every
+  function or preserving source-file order. Put the rationale beside the
+  relevant implementation or link explicitly to it. Several blocks can
+  share a `:tangle` path when reading and executable order agree; otherwise
+  assemble named chunks from an outline. Put `:shebang` on the first tangled
+  block only. Straightforward plumbing can stay together with a sentence
+  explaining its inputs and outputs.
+- **Refine meaningful ideas with Noweb.** Use a short outline with
+  `:noweb yes` when named components help the reader understand the whole.
+  Length alone does not require extraction. Each component is a `#+name:`
+  block with no `:tangle` and with `:eval no` when it is a source fragment.
+  Place it beside the prose that explains it. References can precede their
+  definitions when the reader already understands their role. Tangling
+  supplies the reference's indentation; the page links references to their
+  chunks and back. Chunks can contain chunks, but avoid unnecessary depth.
+  Functions provide callable interfaces; Noweb chunks reveal implementations
+  in explanatory stages, including inside a function. Keep important control
+  flow and state changes visible or explicitly explain where they occur.
 - **Shared code goes in a library, not in copies.** When a second script
   needs a function another script has, move it to a library module (e.g.
   `src/<topic>.py`) and import it from both; don't copy it. The library's
   blocks stay in the note next to the prose that explains them, with
   `:tangle` pointing at the library file. Above all, a model used both to
-  simulate and to fit must be one function. Use noweb fragments only for
-  boilerplate that can't be a function (batch headers, shared argument
-  lists). When moving code that produced included outputs, check that the
+  simulate and to fit must be one function. Use library functions for
+  reusable behavior and Noweb chunks for
+  explanatory refinement; a library function can itself be assembled from
+  chunks. Shared textual boilerplate is another use of Noweb. When moving
+  code that produced included outputs, check that the
   old and new code give the same results, and say so in the note.
-- **Never paste output by hand.** Outputs enter by `#+INCLUDE` of a file a
-  run wrote, so they can't drift from the code.
-- **Self-contained.** Don't point to other analysis folders or colleagues'
-  working files as provenance ("made in ../other", "copied from X's
+- **Never paste output by hand.** Session outputs enter through Babel's
+  `#+RESULTS:`; external-run outputs enter through `#+INCLUDE` of a file
+  the run wrote. Re-run changed computations before relying on their results.
+- **Self-contained.** Link freely between this project's notes and analyses.
+  Don't rely on unexplained external folders or colleagues' working files as provenance ("made in ../other", "copied from X's
   directory"). Say what each input is and show the command, tangled here,
   that reproduces it. Scientific references are fine.
-- **Every analysis file is tangled or evaluated in a note.** Code lives in
+- **Analysis code is tangled or evaluated in a document.** Standalone
+  explanatory SVGs and their illustration-only generating scripts are
+  exempt and should stay outside `CODE` globs. Computational code lives in
   notes: session blocks for cheap steps, tangled blocks for scripts. A new
   script is a new block in a note,
   never a new file. Code no longer used moves to `attic/` (with a line in
   `attic/README.md`) rather than staying in `CODE` paths.
 - **The HTML is an output.** Fix things in the note and re-render; never
-  edit `out/notes/*.html`.
+  edit `out/notes/` HTML files.
 - **Tooling lives in litnote.** Don't copy or patch export, check or daemon
   code inside a project. Change the litnote repo (`$LITNOTE`, see the
   Makefile), keep it general, and commit there.
@@ -247,8 +322,7 @@ They arrive either pasted into the conversation or as a downloaded
 giving the section, the quoted text, and the comment; a `# rc-json:` line
 carries the anchor data and can be ignored. For each one:
 
-1. Find the section and quoted text in the notes (the review document
-   includes the other notes, so the text is usually in one of them).
+1. Find the section and quoted text in the individual document being reviewed.
 2. Make the change in the note, and in the code, report or paper it
    implies. If the comment is a question, answer it in the conversation, and
    in the note too if the note should have said it.
@@ -263,12 +337,12 @@ paragraph it was left on.
 
 ## Pitfalls
 
-- **Includes.** `#+INCLUDE: "x.org" :lines "N-" :minlevel 2` in the review
-  document skips the first N-1 lines of each note (its header). When you add
-  or remove header lines in a note, fix N. `:minlevel 2` makes the note's
-  sections level 2, so each include needs its own level-1 heading (the
-  note's title) right above it; without one, every note ends up inside the
-  section before it ("How to read this").
+- **Links and includes.** Documents are rendered individually, preserving
+  `note/` and `analysis/` beneath `out/notes/`. Use relative document links
+  such as `../analysis/compare.org`. An included report is authoritative
+  output; re-render its consuming document after a run changes the report
+  (use `make -B` when necessary). Legacy combined documents still support
+  `REVIEW`, but new projects do not need one.
 - **YAML blocks.** `:comments link` (the file-wide default) needs a comment
   syntax Emacs `-Q` doesn't have for YAML. Put `:comments no` on YAML blocks,
   or the first line of the file is garbage.
@@ -290,7 +364,7 @@ paragraph it was left on.
   The method blocks take no `:tangle`. The page labels each one
   `⟨name⟩ in → path`, links every `<<name>>` in the outline to it, and links
   the name in its label back to the outline. This is the same outline-first
-  pattern the rules ask for in any long block.
+  pattern used for conceptual refinement.
 - **Emacs in scripts.** `emacs`/`make` read stdin. Inside `ssh host bash -s <
   script`, redirect them from `/dev/null` or they swallow the rest of the
   script.
@@ -299,12 +373,48 @@ paragraph it was left on.
 - **Dates.** Write absolute dates in notes and `readme.org`, not "today" or
   "yesterday".
 
+## Review for understanding
+
+Read the overview without expanding every chunk. Can a reader with the
+stated background explain the algorithm's purpose and main reasoning?
+Then inspect its refinements:
+
+- Does each major component have a clear role in the whole?
+- Are important assumptions and justifications introduced or referenced?
+- Can the reader connect the explanation to the actual operations, including
+  boundary cases and shared state?
+- Can they predict a relevant behavioral change without tracing every line?
+- Are supporting arguments and checks easy to find?
+- Can a beginning graduate student follow the terms, equations and steps
+  without relying on unstated specialist or project knowledge?
+- Do diagrams and plots clarify the important relationships, with readable
+  labels and explanations connecting them to the argument?
+- Would splitting, merging, renaming or moving a chunk reduce the effort
+  needed to follow the argument?
+
+Report localized findings: identify the passage or chunk, explain what the
+reader cannot infer or what the prose misrepresents, cite the supporting
+code or text, and propose a concrete revision. Distinguish observed
+inconsistencies from uncertain interpretations. Avoid a single readability
+score or demands for more prose without a specific explanatory need.
+
+For example: "The overview says invalid measurements are rejected, but the
+implementation never checks uncertainty values. Define the accepted inputs
+and make the validation agree with that contract."
+
+Build checks establish mechanical properties, not human understanding.
+`make check-tangled` checks source coverage and consistency; it does not
+establish that covered code was understood or reviewed.
+
 ## Done means
 
-- the note explains the change in plain prose ("Writing the prose"), and its
-  code blocks are bare, with long blocks written outline-first;
-- results are shown in figures, and mechanisms or data flows that prose
-  struggles with have a diagram, each with a caption;
+- an explanatory note passes the review for understanding above; a working
+  analysis records its question, inputs, execution, evidence and current
+  uncertainty without requiring a polished exposition;
+- prose is clear, code blocks are bare, and chunk boundaries serve the
+  explanation;
+- figures or diagrams clarify results and relationships where useful, each
+  with a caption;
 - the run cell and included output match what was actually run;
 - `make` succeeds and `make check-tangled` reports all in sync;
 - `readme.org` open items are updated if something was closed or raised;
