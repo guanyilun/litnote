@@ -3,5 +3,5 @@
 
 LITNOTE := @LITNOTE@
 CODE    := bin/*.py src/*.py scripts/*.sbatch scripts/*.sh diagrams/*.svg
-REVIEW  := notes/@NAME@_analysis.org
+RUN_NOTES := analysis/@NAME@.org
 include $(LITNOTE)/mk/litnote.mk

@@ -27,12 +27,12 @@ uncertainty of this linear estimate, under the independence assumption, is
 weights have inverse squared units.
 
 The program validates the input, constructs the estimator, checks two
-properties, and reports the example. This outline assembles the executable
+properties. The working analysis imports the library and reports an example. This outline assembles the executable
 order; the sections below explain the estimator before its input checks.
 Source fragments are not evaluated independently in the session.
 
 #+name: complete-program
-#+begin_src python :tangle @PROJ@/bin/example.py :eval no :noweb yes
+#+begin_src python :tangle @PROJ@/src/estimators.py :eval no :noweb yes
 import math
 
 
@@ -42,11 +42,6 @@ def weighted_mean(values, errors):
 
 
 <<check estimator properties>>
-
-estimate, uncertainty = weighted_mean([1.0, 2.0], [1.0, 2.0])
-print(f"estimate {estimate:g}")
-print(f"uncertainty {uncertainty:.6f}")
-print("checks passed")
 #+end_src
 
 * Construct the estimate
@@ -107,30 +102,9 @@ else:
     raise AssertionError("nonpositive uncertainty was accepted")
 #+end_src
 
-* Run and inspect the evidence
+* Applying the algorithm
 
-This example is cheap enough for a session. We run it externally here to
-demonstrate the tangle, run and include workflow used for expensive steps.
-The run cell contains the command; its report is included directly below.
-
-#+begin_src sh :run login :eval no
-mkdir -p out/example && python bin/example.py > out/example/example.txt
-#+end_src
-
-#+INCLUDE: "@PROJ@/out/example/example.txt" example
-
-Read the estimate against the governing idea: it should lie between the
-measurements and closer to the measurement with smaller uncertainty. Write
-numerical conclusions from the report after running, and revisit them when
-inputs or code change.
-
-* A session calculation
-
-A cheap calculation can instead run directly in the note's Python session
-with =bin/note run=. Its output is saved under the named block. This cell
-is independent of the source fragments above.
-
-#+name: equal-precision-mean
-#+begin_src python
-print((1.0 + 3.0) / 2)
-#+end_src
+The working analysis at [[file:../analysis/@NAME@.org]] imports the generated
+library, explores a concrete pair of measurements, and records its output.
+The algorithm and its checks above are the authoritative implementation;
+the analysis does not maintain a second copy.

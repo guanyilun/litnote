@@ -12,6 +12,30 @@ Expensive steps are tangled to scripts, run externally, and their reports
 included back. The HTML brings prose, mathematics, code and evidence
 together with linked Noweb chunks and a comment layer for review.
 
+* Investigation and explanation
+
+Projects have two kinds of document:
+
+- =analysis/= holds working investigations, organized by exploration and
+  execution dependencies. Keep inputs, commands, results and decisions
+  recoverable, including useful failed trials. A polished narrative is not
+  required for every step.
+- =note/= holds standalone explanations, organized around a coherent
+  question, algorithm or argument. Connect purpose, assumptions, reasoning,
+  implementation and evidence. Preserve relevant uncertainty and contrary
+  evidence when presenting conclusions.
+
+A note can draw on several analyses, and an analysis can support several
+notes. Link to or include authoritative material rather than maintaining
+copies. Core algorithms and their explanations belong in =note/=; their
+reusable implementations tangle to =src/= and are imported by analyses.
+
+Review each document individually. =readme.org= links to them and records
+status; there is no combined review document in new projects. =RUN_NOTES=
+in the Makefile lists documents with run cells in dependency order,
+independently of the index or presentation order. Discovery currently covers
+top-level =.org= files in each directory.
+
 * Design for understanding
 
 Start with the problem, the intended reader's background, inputs, outputs
@@ -42,22 +66,24 @@ or readability scores are required.
 
 The scaffold demonstrates this with a weighted mean, its input contract,
 and checks of equal weighting and translation. The full authoring and
-review guide is in =doc/claude-project.md=.
+review guide is in =doc/claude-project.md=. These presentation requirements
+apply to explanatory notes; working analyses have the lighter requirements
+above.
 
 Named chunks free explanatory order from tangled source order. Session
 blocks and run cells still require dependency order; =make runs= follows
-the review document's include order and each note's cell order.
+=RUN_NOTES= and each document's cell order.
 
 * How the pieces fit together
 
-A project is a directory with =notes/*.org=, a four-line =Makefile= that
+A project is a directory with =note/*.org= and =analysis/*.org=, a small =Makefile= that
 includes =mk/litnote.mk=, and whatever the notes tangle and the runs write.
 Cheap steps are notebook cells (see "The notes daemon" below): edit, run
 in the session with =bin/note=, and the result sits under the block.
 Expensive steps go around this loop:
 
 #+begin_example
-   notes/x.org ──make tangle──▶ bin/ src/ scripts/ ──run (shell, queue)──▶ out/…/report.txt, *.png
+   analysis/x.org ──make tangle──▶ bin/ src/ scripts/ ──run (shell, queue)──▶ out/…/report.txt, *.png
         ▲                                                                        │
         │                                                  #+INCLUDE / [[file:]] │
         │                                                                        ▼
@@ -71,9 +97,9 @@ Expensive steps go around this loop:
    report file (and figures) under =out/=.
 3. *Show* the run in the note: a =:run= cell with the exact command, then
    =#+INCLUDE:= of the report.  Write the prose from that output.
-4. *Render* (=make=): every note becomes =out/notes/<note>.html=, labelled
-   as notebook cells (=→ path=, =▶ run=, =output=), and the review document
-   =notes/<name>_analysis.org= puts all notes in one page.
+4. *Render* (=make=): every note becomes =out/notes/<source-path>.html=, labelled
+   as notebook cells (=→ path=, =▶ run=, =output=);
+   documents in =note/= and =analysis/= are reviewed individually.
 5. *Rerun* (=make runs=): every run cell of the notes, in order, from the
    inputs; =make runs-list= shows the plan.  A run cell only calls tangled
    scripts, so every result comes from reviewed code.
@@ -99,17 +125,22 @@ mkdir -p out/example && python bin/example.py > out/example/example.txt
 make
 #+end_src
 
-This writes =Makefile=, =readme.org=, =CLAUDE.md=, =notes/<name>.org= (an
-example of each kind of block) and =notes/<name>_analysis.org= (the review
-document), and links =bin/note=.  The middle line is the example note's
-run cell; =make= fails on its =#+INCLUDE:= until that report exists.  An
-existing project adopts the tooling by replacing its Makefile rules with the
-four lines in =template/Makefile=.
+This writes =Makefile=, =readme.org=, =CLAUDE.md=, an explanatory algorithm
+in =note/<name>.org= and an importing investigation in =analysis/<name>.org=,
+and links =bin/note=. Run the example before rendering its included report.
+The index links to the individual documents. =RUN_NOTES= defaults in the
+scaffold to =analysis/<name>.org=; extend it in dependency order as needed.
+
+Existing projects keep support for =notes/=, =REVIEW= and their existing
+HTML paths. To adopt the new layout, move documents according to their role,
+update links and session commands, replace =REVIEW= with =RUN_NOTES=, and
+replace the aggregate document with index links. Check the run plan with
+=make runs-list= before executing it.
 
 * Conventions
 
 - *The note is the reference.*  Every file that contributes to the analysis
-  is the =:tangle= target of a block in =notes/*.org=; =make check-tangled=
+  is the =:tangle= target of a block in =note/*.org= and =analysis/*.org=; =make check-tangled=
   fails otherwise, and also catches files edited by hand after tangling
   (it restores them and reports).  =CODE= in the Makefile lists the globs
   that count as analysis code.
@@ -151,25 +182,23 @@ four lines in =template/Makefile=.
   only describes what is plotted (data, selection, axes, units, colours,
   markers), which the code fixes; what the figure shows goes in the results
   text, which cites it as =Figure [[fig:x]]= and is backed by the report.
-- *One review document.*  =notes/<name>_analysis.org= includes the others
-  with =#+INCLUDE: "x.org" :lines "N-" :minlevel 2=, where N skips that
-  note's header lines.  Each include gets a level-1 heading above it (the
-  note's title), since =:minlevel 2= puts the note's sections one level down.  Set =REVIEW= in the Makefile so it rebuilds when
-  any included note changes.
-- *Self-contained.*  No provenance pointers to other analysis folders or to
-  colleagues' working files; say what each input is and show the command
-  that reproduces it.  Scientific references are fine.
+- *Individual documents.* Use =readme.org= as an index and review each
+  document's HTML. Reading order is independent of =RUN_NOTES= execution
+  order. Include or link evidence at its authoritative location.
+- *Self-contained.*  Identify inputs and how to reproduce them. Links between this
+  project's notes and analyses are encouraged; avoid relying on unexplained
+  files from other projects or colleagues' working directories.  Scientific references are fine.
 - *Equations* as =\( \)= / =\[ \]= with =^:{}= in =#+OPTIONS=.
 
 * What the export does
 
-=make= renders every note and =readme.org= to =out/notes/*.html=, one
+=make= renders every note and =readme.org= to =out/notes/{note,analysis}/*.html= and =out/notes/readme.html=, one
 self-contained file each (figures inlined as base64):
 
 - Export never runs babel (=org-export-use-babel nil=); it shows what is in
   the buffer or included from files.
 - Tangle blocks are labelled =→ path= (relative to the project root, the
-  directory above =notes/=); =:run= blocks =▶ run (where)=; the example block
+  directory above =note/= or =analysis/=); =:run= blocks =▶ run (where)=; the example block
   after a run, or a =#+RESULTS:=, =output=.  A block that a =:noweb= outline
   includes is labelled =⟨name⟩ in → path=; each =<<name>>= in the outline
   links to it, and the name in its label links back to the outline.
@@ -228,7 +257,7 @@ live session, held by an Emacs daemon so it survives between commands:
 
 #+begin_src sh
 bin/note start              # emacs --daemon=note-<project>
-bin/note open notes/x.org
+bin/note open analysis/x.org
 bin/note stale              # blocks changed since the last run, and empty results
 bin/note run                # re-run from the first changed block
 bin/note py 'print(x)'      # evaluate in the note's interpreter

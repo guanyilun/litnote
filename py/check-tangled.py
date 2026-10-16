@@ -5,7 +5,7 @@ no tangled file has been edited by hand since.
     check-tangled.py [--root DIR] GLOB...        (make check-tangled)
 
 1. Every file under DIR matching one of the GLOBs must be the :tangle target
-   of a block in DIR/notes/*.org.  Empty files (a bare __init__.py) are
+   of a block in DIR/note/*.org or DIR/analysis/*.org (also legacy DIR/notes/*.org).  Empty files (a bare __init__.py) are
    skipped.
 2. Every tangle target is re-tangled from its note and compared with the file
    on disk.  If they differ, the file on disk is restored (so hand edits are
@@ -15,6 +15,7 @@ Exit status 1 if anything is reported.
 import argparse
 import glob
 import os
+from pathlib import Path
 import re
 import shutil
 import subprocess
@@ -26,12 +27,13 @@ TANGLE = re.compile(r'^\s*#\+begin_src\s+\S+.*?:tangle\s+(\S+)', re.I | re.M)
 
 def targets(proj):
     out = {}
-    for note in sorted(glob.glob(f'{proj}/notes/*.org')):
-        for t in TANGLE.findall(open(note).read()):
+    for note in sorted(p for folder in ('note', 'analysis', 'notes')
+                       for p in glob.glob(f'{proj}/{folder}/*.org')):
+        for t in TANGLE.findall(Path(note).read_text()):
             if t in ('no', 'yes'):
                 continue
             p = os.path.normpath(t if os.path.isabs(t) else os.path.join(os.path.dirname(note), t))
-            out.setdefault(os.path.relpath(p, proj), set()).add(os.path.basename(note))
+            out.setdefault(os.path.relpath(p, proj), set()).add(os.path.relpath(note, proj))
     return out
 
 
@@ -56,7 +58,7 @@ def main():
             shutil.copy2(f, os.path.join(backup, f))
     for note in sorted({n for ns in T.values() for n in ns}):
         subprocess.run(['emacs', '-Q', '--batch', '-l', 'org', '--eval',
-                        f'(org-babel-tangle-file "notes/{note}")'], capture_output=True, check=True)
+                        f'(org-babel-tangle-file "{note}")'], capture_output=True, check=True)
     for f, notes in sorted(T.items()):
         b = os.path.join(backup, f)
         if not os.path.exists(b):

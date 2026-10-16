@@ -1,10 +1,35 @@
 # Working in a litnote project
 
-This project is a literate analysis: the org notes in `notes/` are the
+This project is a literate analysis: the org documents in `note/` and `analysis/` are the
 source of truth, and everything else is either tangled from them or written
 by running what was tangled. These rules apply to every litnote project; the
 project's own `CLAUDE.md` adds what is specific to it (environment, how jobs
 are submitted, where data lives).
+
+## Two document roles
+
+- **`analysis/`: investigation.** Organize working analyses around exploration
+  and execution dependencies. Record questions, inputs, commands, results,
+  decisions and relevant unsuccessful trials. Keep computations recoverable;
+  a polished narrative is not required for every exploratory step.
+- **`note/`: explanation.** Each note presents a coherent question, algorithm
+  or argument in the order that best supports understanding. Apply the
+  explanatory design and comprehension review below to these documents.
+  Preserve uncertainty and contrary evidence relevant to the conclusions.
+
+One note can draw on several analyses and one analysis can support several
+notes. Link to or include authoritative evidence rather than copying code
+or results. Keep stable algorithms and their explanations in `note/` and
+tangle reusable implementations to `src/` for analyses to import. There is
+no separate literate `library/` category. An analysis can be developed into
+a note as understanding stabilizes; avoid leaving two maintained copies.
+
+Review documents individually. `readme.org` is the navigation and status
+index, not a concatenation of every document. Presentation order does not
+set execution order: list documents with run cells in dependency order in
+`RUN_NOTES` in the Makefile. Within each document, run cells and session
+blocks retain their execution dependencies. Run plans and source discovery
+currently cover top-level `.org` files in each directory.
 
 ## Design the explanation first
 
@@ -44,23 +69,19 @@ annotations are required.
   tests and numerical checks near the claims they support, with their limits.
   A successful run alone does not establish correctness.
 
-Reading order and execution order are distinct. Named chunks can be explained
-in a different order from their placement in tangled source. Session blocks
-and run cells still follow dependency order; `make runs` uses the review
-document's include order and then each note's cell order. Do not reorder
-those executable cells merely to improve exposition. Use an overview and
-references to introduce their ideas earlier.
-
 ## Layout
 
-| path | what | edit? |
+| path | role | edit? |
 |---|---|---|
-| `notes/*.org` | the analysis: prose, code blocks, run cells, included outputs | **yes, the only place** |
-| `notes/<name>_analysis.org` | the review document; `#+INCLUDE`s the other notes | when notes are added or reordered |
-| `bin/`, `src/`, `scripts/`, `diagrams/`, … | code and SVG diagrams tangled from the notes | never by hand |
-| `out/` | files written by runs (reports, figures); `out/notes/*.html` from `make` | never by hand |
-| `readme.org` | where things stand, open items, notes table | yes |
-| `Makefile` | four lines: `LITNOTE`, `CODE`, `REVIEW`, `include` | rarely (`CODE` globs) |
+| `note/*.org` | standalone explanations and core algorithms | yes |
+| `analysis/*.org` | executable investigations and evidence | yes |
+| `bin/`, `src/`, `scripts/`, `diagrams/` | tangled implementations | never by hand |
+| `out/` | generated results and rendered documents | never by hand |
+| `readme.org` | document index, status and open items | yes |
+| `Makefile` | project paths, code globs and `RUN_NOTES` | as needed |
+
+Existing `notes/` projects and their `REVIEW` setting remain supported;
+new projects use the two roles above and do not create a combined document.
 
 ## Two kinds of step
 
@@ -115,7 +136,7 @@ Every change to a tangled step goes around this loop:
    an included report; re-read the report after each re-run and update
    the text.
 6. **Run everything again.** `make runs` runs every run cell of the notes in
-   order (the review document's include order, then each note top to bottom),
+   order (`RUN_NOTES` order, then each document top to bottom),
    each as `bash -e` in the project root, logging to `out/runs/`, and stops at
    the first failure; `make runs-list` shows the plan. So a run cell must be
    complete on its own: it calls tangled scripts, creates the directories it
@@ -123,10 +144,10 @@ Every change to a tangled step goes around this loop:
    comparisons, filters): put it in a tangled script and call that, so every
    result comes from reviewed code. Mark a cell `:run manual` if it must not be
    rerun automatically.
-7. **Render and check.** `make` renders `out/notes/*.html` and warns about
+7. **Render and check.** `make` renders `out/notes/` HTML files and warns about
    blocks with no output. `make check-tangled` must say *all tangled and in
    sync*; if it reports `EDITED` or `NOT TANGLED`, move the change into a
-   note. This checks that code is available in the review source, not that
+   document. This checks that code is available in the review source, not that
    a reader has reviewed or understood it.
    Keep every analysis path in `CODE`, even when some files are knowingly
    left out, so the report stays an honest list of what review doesn't
@@ -140,7 +161,7 @@ held open by an Emacs daemon, and their output is the block's
 `bin/note`, never by editing results:
 
 ```sh
-bin/note start && bin/note open notes/x.org
+bin/note start && bin/note open analysis/x.org
 bin/note stale              # blocks changed since the last run, and empty results
 bin/note run                # re-run from the first changed block to the end
 bin/note block name1 name2  # only these, when you know nothing above changed
@@ -148,7 +169,7 @@ bin/note py 'print(x)'      # a one-off in the same interpreter
 ```
 
 - Give every block a `#+name:` so its results stay attached when text is
-  inserted above it; `$LITNOTE/py/name-blocks.py --write notes/x.org` adds
+  inserted above it; `$LITNOTE/py/name-blocks.py --write analysis/x.org` adds
   names and re-anchors results.
 - Mark blocks that legitimately print nothing `:eval no` or `:results
   silent`, so `make`'s empty-result warning stays meaningful.
@@ -160,9 +181,11 @@ bin/note py 'print(x)'      # a one-off in the same interpreter
 
 ## Writing the prose
 
-A note is read by a person who wants to follow the reasoning, so write it
+An explanatory note is read by a person who wants to follow the reasoning, so write it
 the way you would explain the analysis to a colleague. This is the default
-for every note, new sections and rewrites alike.
+for `note/`, new sections and rewrites alike. Working analyses need enough
+context to reproduce and interpret the investigation; they need not satisfy
+the full presentation requirements while exploration is ongoing.
 
 - **Explain the analysis, not the work.** A note walks the reader through
   the analysis and explains what the results show: the question, the method
@@ -268,8 +291,8 @@ a clause refers to, split it.
 - **Never paste output by hand.** Session outputs enter through Babel's
   `#+RESULTS:`; external-run outputs enter through `#+INCLUDE` of a file
   the run wrote. Re-run changed computations before relying on their results.
-- **Self-contained.** Don't point to other analysis folders or colleagues'
-  working files as provenance ("made in ../other", "copied from X's
+- **Self-contained.** Link freely between this project's notes and analyses.
+  Don't rely on unexplained external folders or colleagues' working files as provenance ("made in ../other", "copied from X's
   directory"). Say what each input is and show the command, tangled here,
   that reproduces it. Scientific references are fine.
 - **Every analysis file is tangled or evaluated in a note.** Code lives in
@@ -278,7 +301,7 @@ a clause refers to, split it.
   never a new file. Code no longer used moves to `attic/` (with a line in
   `attic/README.md`) rather than staying in `CODE` paths.
 - **The HTML is an output.** Fix things in the note and re-render; never
-  edit `out/notes/*.html`.
+  edit `out/notes/` HTML files.
 - **Tooling lives in litnote.** Don't copy or patch export, check or daemon
   code inside a project. Change the litnote repo (`$LITNOTE`, see the
   Makefile), keep it general, and commit there.
@@ -291,8 +314,7 @@ They arrive either pasted into the conversation or as a downloaded
 giving the section, the quoted text, and the comment; a `# rc-json:` line
 carries the anchor data and can be ignored. For each one:
 
-1. Find the section and quoted text in the notes (the review document
-   includes the other notes, so the text is usually in one of them).
+1. Find the section and quoted text in the individual document being reviewed.
 2. Make the change in the note, and in the code, report or paper it
    implies. If the comment is a question, answer it in the conversation, and
    in the note too if the note should have said it.
@@ -307,12 +329,12 @@ paragraph it was left on.
 
 ## Pitfalls
 
-- **Includes.** `#+INCLUDE: "x.org" :lines "N-" :minlevel 2` in the review
-  document skips the first N-1 lines of each note (its header). When you add
-  or remove header lines in a note, fix N. `:minlevel 2` makes the note's
-  sections level 2, so each include needs its own level-1 heading (the
-  note's title) right above it; without one, every note ends up inside the
-  section before it ("How to read this").
+- **Links and includes.** Documents are rendered individually, preserving
+  `note/` and `analysis/` beneath `out/notes/`. Use relative document links
+  such as `../analysis/compare.org`. An included report is authoritative
+  output; re-render its consuming document after a run changes the report
+  (use `make -B` when necessary). Legacy combined documents still support
+  `REVIEW`, but new projects do not need one.
 - **YAML blocks.** `:comments link` (the file-wide default) needs a comment
   syntax Emacs `-Q` doesn't have for YAML. Put `:comments no` on YAML blocks,
   or the first line of the file is garbage.
@@ -374,8 +396,9 @@ establish that covered code was understood or reviewed.
 
 ## Done means
 
-- the note passes the review for understanding above: purpose, assumptions,
-  refinement, implementation and evidence are connected;
+- an explanatory note passes the review for understanding above; a working
+  analysis records its question, inputs, execution, evidence and current
+  uncertainty without requiring a polished exposition;
 - prose is clear, code blocks are bare, and chunk boundaries serve the
   explanation;
 - figures or diagrams clarify results and relationships where useful, each
