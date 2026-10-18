@@ -5,7 +5,8 @@ no tangled file has been edited by hand since.
     check-tangled.py [--root DIR] GLOB...        (make check-tangled)
 
 1. Every file under DIR matching one of the GLOBs must be the :tangle target
-   of a block in DIR/note/*.org or DIR/analysis/*.org (also legacy DIR/notes/*.org).  Empty files (a bare __init__.py) are
+   of a block in an .org file under DIR/note/ or DIR/analysis/, including
+   sub-folders (also legacy DIR/notes/).  Empty files (a bare __init__.py) are
    skipped.
 2. Every tangle target is re-tangled from its note and compared with the file
    on disk.  If they differ, the file on disk is restored (so hand edits are
@@ -28,7 +29,7 @@ TANGLE = re.compile(r'^\s*#\+begin_src\s+\S+.*?:tangle\s+(\S+)', re.I | re.M)
 def targets(proj):
     out = {}
     for note in sorted(p for folder in ('note', 'analysis', 'notes')
-                       for p in glob.glob(f'{proj}/{folder}/*.org')):
+                       for p in glob.glob(f'{proj}/{folder}/**/*.org', recursive=True)):
         for t in TANGLE.findall(Path(note).read_text()):
             if t in ('no', 'yes'):
                 continue

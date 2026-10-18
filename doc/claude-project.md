@@ -28,8 +28,11 @@ Review documents individually. `readme.org` is the navigation and status
 index, not a concatenation of every document. Presentation order does not
 set execution order: list documents with run cells in dependency order in
 `RUN_NOTES` in the Makefile. Within each document, run cells and session
-blocks retain their execution dependencies. Run plans and source discovery
-currently cover top-level `.org` files in each directory.
+blocks retain their execution dependencies. Rendering and run plans default
+to top-level `.org` files in each directory; a project can list
+documents in sub-folders (for example `analysis/topic/*.org`) in `NOTES`
+and `RUN_NOTES` in its Makefile. `make check-tangled` searches
+sub-folders.
 
 ## Design the explanation first
 
