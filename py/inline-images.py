@@ -15,6 +15,7 @@ import sys
 
 IMG = re.compile(r'(<img\b[^>]*?\bsrc=")([^"]+)(")', re.I)
 FRAMES = re.compile(r'(<img\b[^>]*?\bdata-frames=")([^"]+)(")', re.I)
+SWIPE = re.compile(r'(<img\b[^>]*?\bdata-swipe=")([^"]+)(")', re.I)
 
 
 def main(path):
@@ -55,6 +56,7 @@ def main(path):
         return f'{m.group(1)}{"|".join(uris)}{m.group(3)}'
 
     out = FRAMES.sub(repl_frames, out)
+    out = SWIPE.sub(repl_frames, out)
     with open(path, 'w', encoding='utf-8') as f:
         f.write(out)
 

@@ -71,6 +71,18 @@
   .frame-bar button { font: inherit; padding: .1rem .5rem; margin: 0 .5rem; cursor: pointer;
       border: 1px solid #ccc; border-radius: 4px; background: #fff; color: #333; }
   .frame-bar button:hover { background: #f0f0f0; }
+  .swipe { position: relative; display: inline-block; max-width: 100%; touch-action: none;
+           cursor: ew-resize; user-select: none; outline: none; }
+  .swipe > img { display: block; margin: 0; }
+  .swipe > img.swipe-top { position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+           pointer-events: none; }
+  .swipe-handle { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px;
+           background: #d33; box-shadow: 0 0 0 1px rgba(255,255,255,.8); pointer-events: none; }
+  .swipe-label { position: absolute; top: .3rem; font: .75rem/1.3 'DejaVu Sans Mono', monospace;
+           background: rgba(255,255,255,.85); color: #333; padding: 0 .3rem; border-radius: 3px;
+           pointer-events: none; }
+  .swipe-label.a { left: .3rem; }
+  .swipe-label.b { right: .3rem; }
   img { max-width: 100%; height: auto; border: 1px solid #e5e5e5;
         border-radius: 4px; background: #fff; }
   table { border-collapse: collapse; font-size: .92rem; margin: 1.2rem 0; }
@@ -338,6 +350,66 @@ document.addEventListener('DOMContentLoaded', function () {
   spy();
 });
 
+// Swipe comparison: an <img data-swipe='b.png'> gets b.png stacked over it
+// (inlined by inline-images.py as data URIs joined by |), clipped at a
+// vertical bar that the reader drags, or moves with the arrow keys after
+// clicking.  Left of the bar is the image itself, right of it the other.
+// data-swipe-labels names the two sides, joined by |.  With data-frames,
+// data-swipe holds one image per frame, the image itself first, and the
+// overlay follows the frame.
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('img[data-swipe]').forEach(function (img) {
+    var raw = img.getAttribute('data-swipe');
+    var srcs = raw.indexOf('data:') === 0 ? raw.split('|') : raw.split(' ').filter(Boolean);
+    var labels = (img.getAttribute('data-swipe-labels') || '').split('|');
+    var wrap = document.createElement('div');
+    wrap.className = 'swipe';
+    wrap.tabIndex = 0;
+    img.parentNode.insertBefore(wrap, img);
+    wrap.appendChild(img);
+    var top = document.createElement('img');
+    top.className = 'swipe-top';
+    top.alt = labels[1] || '';
+    var handle = document.createElement('div');
+    handle.className = 'swipe-handle';
+    wrap.appendChild(top);
+    wrap.appendChild(handle);
+    [['a', labels[0]], ['b', labels[1]]].forEach(function (l) {
+      if (!l[1]) return;
+      var t = document.createElement('span');
+      t.className = 'swipe-label ' + l[0];
+      t.textContent = l[1];
+      wrap.appendChild(t);
+    });
+    var x = 0.5, drag = false;
+    function set(v) {
+      x = Math.min(1, Math.max(0, v));
+      top.style.clipPath = 'inset(0 0 0 ' + (100 * x) + '%)';
+      handle.style.left = (100 * x) + '%';
+    }
+    function frame() {
+      var i = parseInt(img.getAttribute('data-frame') || '0', 10);
+      top.src = srcs[Math.min(i, srcs.length - 1)];
+    }
+    function at(e) {
+      var r = wrap.getBoundingClientRect();
+      set((e.clientX - r.left) / r.width);
+    }
+    img.addEventListener('framechange', frame);
+    wrap.addEventListener('pointerdown', function (e) {
+      drag = true; wrap.setPointerCapture(e.pointerId); wrap.focus(); at(e); e.preventDefault();
+    });
+    wrap.addEventListener('pointermove', function (e) { if (drag) at(e); });
+    wrap.addEventListener('pointerup', function () { drag = false; });
+    wrap.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowLeft') { set(x - 0.02); e.preventDefault(); }
+      if (e.key === 'ArrowRight') { set(x + 0.02); e.preventDefault(); }
+    });
+    frame();
+    set(0.5);
+  });
+});
+
 // Figures with frames: an <img data-frames='a.png b.png'> has extra frames
 // (inlined by inline-images.py as data URIs joined by |) and optional
 // data-labels, one per frame, the image itself first.  j / k step the
@@ -352,11 +424,13 @@ document.addEventListener('DOMContentLoaded', function () {
     bar.className = 'frame-bar';
     bar.innerHTML = '<button type=button class=frame-prev>&#8249; k</button>' +
       '<span class=frame-label></span><button type=button class=frame-next>j &#8250;</button>';
-    img.insertAdjacentElement('afterend', bar);
+    (img.closest('.swipe') || img).insertAdjacentElement('afterend', bar);
     var f = { img: img, srcs: srcs, labels: labels, i: 0, bar: bar };
     f.show = function (i) {
       f.i = (i + f.srcs.length) % f.srcs.length;
       f.img.src = f.srcs[f.i];
+      f.img.setAttribute('data-frame', f.i);
+      f.img.dispatchEvent(new Event('framechange'));
       bar.querySelector('.frame-label').textContent = 'frame ' + (f.i + 1) + ' of ' + f.srcs.length +
         (f.labels[f.i] ? ': ' + f.labels[f.i] : '');
     };

@@ -253,6 +253,13 @@ the full presentation requirements while exploration is ongoing.
     /abs/c.png :data-labels a = 0|a = 1|a = 2` (no quotes; labels joined by
     `|`, the image itself first). The reader steps through them with j / k.
     The caption says what the frames are.
+  - To compare two images of the same layout, such as a measured map and
+    a reference, stack them with a draggable divider:
+    `#+ATTR_HTML: :data-swipe /abs/other.png :data-swipe-labels a|b`.
+    Left of the divider is the figure's own image, right of it the other;
+    the reader drags it, or clicks and uses the arrow keys. With
+    `:data-frames`, `:data-swipe` lists one image per frame. The caption
+    says what the two sides are.
 - **Explain each equation in words**: what it computes and what its symbols
   are, next to the code that implements it (see the rules below).
 - **Precise, not chatty.** No hype and no filler. Keep the spelling the note
