@@ -203,7 +203,11 @@ replace the aggregate document with index links. Check the run plan with
 * What the export does
 
 =make= renders every note and =readme.org= to =out/notes/{note,analysis}/*.html= and =out/notes/readme.html=, one
-self-contained file each (figures inlined as base64):
+self-contained file each (figures inlined as base64).  A project Makefile can
+set =OUTDIR= to render elsewhere.  Legacy =notes/x.org= renders flat to
+=$(OUTDIR)/x.html=, keeping old URLs; =LEGACY_FLAT := no= keeps it in
+=$(OUTDIR)/notes/= beside =note/= and =analysis/=, and links follow.
+
 
 - Export never runs babel (=org-export-use-babel nil=); it shows what is in
   the buffer or included from files.

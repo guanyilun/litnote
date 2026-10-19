@@ -611,9 +611,11 @@ FILE is the :tangle target the outline, or the chain of outlines, ends in."
 ;; the source, but legacy notes/x.org renders to out/notes/x.html while
 ;; note/ and analysis/ keep their directory (mk/litnote.mk, ln_html).  So a
 ;; link between the two kinds is rewritten to the path between the rendered
-;; pages; links inside the project root only.
+;; pages; links inside the project root only.  With LEGACY_FLAT=no the make
+;; rules set note/legacy-flat to nil and every document keeps its directory.
+(defvar note/legacy-flat t)
 (defun note/render-path (rel)
-  (if (string-prefix-p "notes/" rel) (substring rel 6) rel))
+  (if (and note/legacy-flat (string-prefix-p "notes/" rel)) (substring rel 6) rel))
 
 (defun note/org-link (orig link desc info)
   (let* ((path (org-element-property :path link))

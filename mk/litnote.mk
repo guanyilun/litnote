@@ -6,7 +6,7 @@
 #   RUN_NOTES := analysis/inputs.org analysis/compare.org # dependency order
 #   include $(LITNOTE)/mk/litnote.mk
 #
-#   make                 notes + readme -> out/notes/*.html
+#   make                 notes + readme -> $(OUTDIR) (default out/notes)
 #   make out/notes/X.html               one file
 #   make check           blocks with no output, stale excerpts, rebinds
 #   make tangle          write every :tangle block out to its file
@@ -14,6 +14,9 @@
 #   make runs            run every :run cell of the notes, in order (RUNS_ARGS passes options)
 #   make runs-list       list them without running
 #   make clean
+#
+# OUTDIR sets where the HTML goes; LEGACY_FLAT=no keeps legacy notes/ as a
+# sub-folder of it (default: flat, for old URLs).
 #
 # Export never re-runs babel blocks (lisp/export-note.el); it ships what is
 # already in the buffer or #+INCLUDEd from files the runs wrote.
@@ -31,10 +34,15 @@ CODE    ?= bin/*.py src/*.py scripts/*.sbatch scripts/*.sh
 LN_EL    := $(LITNOTE)/lisp/export-note.el $(LITNOTE)/lisp/review-comments.html
 LN_POST  := $(LITNOTE)/py/highlight-html.py $(LITNOTE)/py/inline-images.py
 LN_CHECK := $(LITNOTE)/py/check-results.py $(LITNOTE)/py/check-excerpts.py $(LITNOTE)/py/check-rebinds.py
-LN_BATCH  = $(EMACS) -Q --batch -l $(LITNOTE)/lisp/export-note.el --eval
+LN_BATCH  = $(EMACS) -Q --batch -l $(LITNOTE)/lisp/export-note.el \
+            --eval '(setq note/legacy-flat $(if $(ln_flat),t,nil))' --eval
 
-# Preserve the new source directories; retain legacy notes/*.html URLs.
-ln_html = $(OUTDIR)/$(patsubst notes/%,%,$(1:.org=.html))
+# Preserve the new source directories.  Legacy notes/x.org renders flat to
+# $(OUTDIR)/x.html, keeping old URLs, unless LEGACY_FLAT is no; then it
+# keeps its directory like note/ and analysis/.
+LEGACY_FLAT ?= yes
+ln_flat  = $(filter yes,$(LEGACY_FLAT))
+ln_html  = $(OUTDIR)/$(if $(ln_flat),$(patsubst notes/%,%,$(1:.org=.html)),$(1:.org=.html))
 HTML    := $(foreach s,$(SRC),$(call ln_html,$(s)))
 
 .PHONY: html check clean list tangle check-tangled litnote-version runs runs-list
@@ -64,7 +72,7 @@ $(foreach s,$(SRC),$(eval $(call ln_export_rule,$(s))))
 
 # The review document #+INCLUDEs the other notes, so it is stale when any changes.
 ifdef REVIEW
-$(OUTDIR)/$(notdir $(REVIEW:.org=.html)): $(filter-out $(REVIEW),$(NOTES))
+$(call ln_html,$(REVIEW)): $(filter-out $(REVIEW),$(NOTES))
 endif
 
 $(OUTDIR):

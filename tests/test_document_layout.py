@@ -86,5 +86,21 @@ class DocumentLayoutTests(unittest.TestCase):
             self.assertIn('href="note/a.html"', (root / 'out/notes/b.html').read_text())
 
 
+    def test_unflattened_legacy_layout_keeps_every_directory(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            for directory in ('note', 'notes'):
+                (root / directory).mkdir()
+            (root / 'note/a.org').write_text('#+title: A\n\n[[file:../notes/b.org][b]]\n')
+            (root / 'notes/b.org').write_text('#+title: B\n\n[[file:../note/a.org][a]]\n')
+            (root / 'Makefile').write_text(f'LITNOTE := {ROOT}\nOUTDIR := out/html\nLEGACY_FLAT := no\n'
+                                           'include $(LITNOTE)/mk/litnote.mk\n')
+            output = subprocess.check_output(['make', 'list'], cwd=root, text=True)
+            self.assertIn('out/html/notes/b.html', output)
+            subprocess.run(['make', 'out/html/note/a.html', 'out/html/notes/b.html'], cwd=root,
+                           stdin=subprocess.DEVNULL, capture_output=True, check=True)
+            self.assertIn('href="../notes/b.html"', (root / 'out/html/note/a.html').read_text())
+            self.assertIn('href="../note/a.html"', (root / 'out/html/notes/b.html').read_text())
+
 if __name__ == '__main__':
     unittest.main()

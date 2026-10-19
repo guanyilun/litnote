@@ -348,7 +348,9 @@ paragraph it was left on.
 ## Pitfalls
 
 - **Links and includes.** Documents are rendered individually, preserving
-  `note/` and `analysis/` beneath `out/notes/`. Use relative document links
+  `note/` and `analysis/` beneath `out/notes/` (the Makefile's `OUTDIR`;
+  `LEGACY_FLAT := no` puts legacy `notes/` in its own sub-folder there
+  too). Use relative document links
   such as `../analysis/compare.org`. An included report is authoritative
   output; re-render its consuming document after a run changes the report
   (use `make -B` when necessary). Legacy combined documents still support
