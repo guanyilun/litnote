@@ -316,8 +316,8 @@ a clause refers to, split it.
   exempt and should stay outside `CODE` globs. Computational code lives in
   notes: session blocks for cheap steps, tangled blocks for scripts. A new
   script is a new block in a note,
-  never a new file. Code no longer used moves to `retired/` (with a line in
-  `retired/README.md`) rather than staying in `CODE` paths.
+  never a new file. Code no longer used moves to `archive/` (with a line in
+  `archive/README.md`) rather than staying in `CODE` paths.
 - **The HTML is an output.** Fix things in the note and re-render; never
   edit `out/notes/` HTML files.
 - **Tooling lives in litnote.** Don't copy or patch export, check or daemon
