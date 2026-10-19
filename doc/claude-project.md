@@ -260,6 +260,10 @@ the full presentation requirements while exploration is ongoing.
     the reader drags it, or clicks and uses the arrow keys. With
     `:data-frames`, `:data-swipe` lists one image per frame. The caption
     says what the two sides are.
+  - A map or panel whose detail is lost at text-column width can span
+    the window: add `:class wide` to its `#+ATTR_HTML`. The caption keeps
+    its reading width. Draw such a figure wide (about 2:1 or wider) so
+    the extra width shows detail rather than margin.
 - **Explain each equation in words**: what it computes and what its symbols
   are, next to the code that implements it (see the rules below).
 - **Precise, not chatty.** No hype and no filler. Keep the spelling the note

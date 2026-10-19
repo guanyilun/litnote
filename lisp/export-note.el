@@ -83,6 +83,14 @@
            pointer-events: none; }
   .swipe-label.a { left: .3rem; }
   .swipe-label.b { right: .3rem; }
+  /* wide figures (an image with class wide) span the window, not the text
+     column; the caption keeps its reading width. */
+  .wide-figure { --w: min(calc(100vw - 2.5rem), 120rem); width: var(--w);
+                 margin-left: calc(50% - var(--w) / 2); }
+  body.toc-open .wide-figure { --w: min(calc(100vw - 22.5rem), 120rem); }
+  @media (max-width: 70rem) { body.toc-open .wide-figure { --w: calc(100vw - 2.5rem); } }
+  img.wide { width: 100%; }
+  .wide-figure .swipe { display: block; }
   img { max-width: 100%; height: auto; border: 1px solid #e5e5e5;
         border-radius: 4px; background: #fff; }
   table { border-collapse: collapse; font-size: .92rem; margin: 1.2rem 0; }
@@ -348,6 +356,14 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!queued) { queued = true; requestAnimationFrame(spy); }
   }, { passive: true });
   spy();
+});
+
+// Wide figures: the figure holding an <img class=wide> is marked so the CSS
+// lets it span the window.
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('img.wide').forEach(function (img) {
+    (img.closest('figure, .figure') || img.parentNode).classList.add('wide-figure');
+  });
 });
 
 // Swipe comparison: an <img data-swipe='b.png'> gets b.png stacked over it
