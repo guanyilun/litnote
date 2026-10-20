@@ -334,7 +334,10 @@ The user reviews the rendered HTML and leaves comments in the right margin.
 They arrive either pasted into the conversation or as a downloaded
 `review_comments_<page>.org`. Each open comment is an org `TODO` heading
 giving the section, the quoted text, and the comment; a `# rc-json:` line
-carries the anchor data and can be ignored. For each one:
+carries the anchor data and can be ignored. When the heading has
+`:SELECTED: yes`, the quote is exactly the text the reviewer selected and
+the comment is about those words; otherwise it is the start of the block
+the comment is on. For each one:
 
 1. Find the section and quoted text in the individual document being reviewed.
 2. Make the change in the note, and in the code, report or paper it

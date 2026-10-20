@@ -5,6 +5,14 @@
       font: bold .95rem/1.2rem sans-serif; cursor: pointer; opacity: 0; transition: opacity .12s; z-index: 5; }
   .rc-host:hover > .rc-add, .rc-add:focus { opacity: 1; }
   .rc-add:hover { color: #b8860b; border-color: #d9c27a; }
+  .rc-add, .rc-marker, .rc-qbtn { user-select: none; -webkit-user-select: none; }
+  .rc-qbtn { position: absolute; z-index: 30; display: none; padding: .2rem .55rem; border: 1px solid #d4ac0d;
+      border-radius: 4px; background: #f1c40f; color: #3d2f00; font: .8rem sans-serif; cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,.18); }
+  .rc-box .rc-quote, #rc-panel .rc-quote { margin: 0 0 .35rem; padding: .1rem .5rem; border-left: 3px solid #d9c27a;
+      color: #6b5d2a; font-style: italic; white-space: pre-wrap; }
+  #rc-panel .rc-quote { margin: .15rem 0; font-size: .8rem; }
+  ::highlight(rc-quote) { background-color: #fdeba0; }
   .rc-has { box-shadow: 4px 0 0 #f1c40f; }
   .rc-marker { position: absolute; right: -1.75rem; top: .15rem; width: 1.35rem; height: 1.35rem;
       padding: 0; border: 0; border-radius: 50%; background: #f1c40f; color: #5a4500;
@@ -38,11 +46,13 @@
   #rc-panel label { font-size: .78rem; color: #666; display: flex; gap: .3rem; align-items: center; }
   #rc-panel .rc-flash { color: #1f7a4d; font-size: .78rem; min-height: 1em; }
   #rc-panel .rc-actions { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: .5rem; }
-  @media print { .rc-add, .rc-marker, #rc-toggle, #rc-panel { display: none !important; } }
+  @media print { .rc-add, .rc-marker, .rc-qbtn, #rc-toggle, #rc-panel { display: none !important; } }
   @media (prefers-color-scheme: dark) {
     .rc-add { background: #24272c; border-color: #3a3f47; color: #999; }
     .rc-box { background: #2a2615; border-color: #5c5020; }
     .rc-box textarea { background: #1c1f24; color: #ddd; border-color: #5c5020; }
+    .rc-box .rc-quote, #rc-panel .rc-quote { color: #c9b870; border-left-color: #5c5020; }
+    ::highlight(rc-quote) { background-color: #5c5020; color: inherit; }
     .rc-btn { background: #24272c; border-color: #3a3f47; color: #ccc; }
     #rc-toggle { background: #2a2615; border-color: #5c5020; color: #e8d27a; }
     #rc-panel { background: #1c1f24; border-color: #333; color: #ddd; }
@@ -137,28 +147,37 @@ document.addEventListener('DOMContentLoaded', function () {
   // on, has to be open to show its box and marker.
   function unfold(h) { if (h.tagName === 'DETAILS') h.open = true; return h; }
 
-  function openBox(a, existing) {
+  // Boxes for one block sit one after another below it; + and the marker
+  // toggle them, a comment on a selection always adds one.
+  function boxes(h) {
+    var out = [];
+    for (var n = h.nextElementSibling; n && n.classList.contains('rc-box'); n = n.nextElementSibling) out.push(n);
+    return out;
+  }
+  function openBox(a, existing, quote) {
     var h = unfold(host(a));
-    var old = h.nextElementSibling;
-    if (old && old.classList.contains('rc-box')) { old.remove(); return; }
+    var after = boxes(h).pop() || h;
+    quote = existing ? existing.quote : quote;
     var box = document.createElement('div');
     box.className = 'rc-box';
-    box.innerHTML = '<textarea placeholder="Comment for the review…"></textarea>' +
+    box.innerHTML = (quote ? '<div class="rc-quote"></div>' : '') +
+      '<textarea placeholder="Comment for the review…"></textarea>' +
       '<div class="rc-row"><span class="rc-where"></span>' +
       (existing ? '<button class="rc-btn rc-del">Delete</button><button class="rc-btn rc-res">' +
                   (existing.resolved ? 'Reopen' : 'Resolve') + '</button>' : '') +
       '<button class="rc-btn rc-cancel">Cancel</button><button class="rc-btn rc-primary rc-save">Save</button></div>';
     box.querySelector('.rc-where').textContent = a.section + ' · ' + a.kind + ' ' + a.n + (a.label ? ' · ' + a.label : '');
+    if (quote) box.querySelector('.rc-quote').textContent = quote;
     var ta = box.querySelector('textarea');
     if (existing) ta.value = existing.text;
-    h.insertAdjacentElement('afterend', box);
+    after.insertAdjacentElement('afterend', box);
     ta.focus();
     box.querySelector('.rc-cancel').onclick = function () { box.remove(); };
     box.querySelector('.rc-save').onclick = function () {
       var t = ta.value.trim();
       if (existing) { if (t) { existing.text = t; existing.updated = new Date().toISOString(); } else remove(existing); }
       else if (t) comments.push({ section: a.section, kind: a.kind, n: a.n, label: a.label, snippet: a.snippet,
-                                   text: t, created: new Date().toISOString() });
+                                   quote: quote || undefined, text: t, created: new Date().toISOString() });
       save(comments); box.remove(); render();
     };
     var res = box.querySelector('.rc-res');
@@ -178,7 +197,11 @@ document.addEventListener('DOMContentLoaded', function () {
     if (h.querySelector(':scope > .rc-add')) return;
     var b = document.createElement('button');
     b.className = 'rc-add'; b.type = 'button'; b.textContent = '+'; b.title = 'Add a review comment';
-    b.onclick = function (e) { e.stopPropagation(); openBox(a, null); };
+    b.onclick = function (e) {
+      e.stopPropagation();
+      var open = boxes(host(a));
+      if (open.length) open.forEach(function (x) { x.remove(); }); else openBox(a, null);
+    };
     h.appendChild(b);
   });
 
@@ -206,10 +229,13 @@ document.addEventListener('DOMContentLoaded', function () {
       m.title = 'Show comments';
       m.onclick = function (e) {
         e.stopPropagation();
+        var open = boxes(host(a));
+        if (open.length) { open.forEach(function (x) { x.remove(); }); return; }
         comments.filter(function (c) { return c._a === a && !c.resolved; }).forEach(function (c) { openBox(a, c); });
       };
       h.appendChild(m);
     });
+    highlight();
     var open = comments.filter(function (c) { return !c.resolved; });
     toggle.textContent = 'Comments (' + open.length + (comments.length > open.length ? ' open' : '') + ')';
     panel.innerHTML = '<div class="rc-actions"><button class="rc-btn rc-primary rc-copy">Copy open</button>' +
@@ -222,8 +248,10 @@ document.addEventListener('DOMContentLoaded', function () {
       if (c.resolved && !showResolved) return;
       var it = document.createElement('div');
       it.className = 'rc-item' + (c.resolved ? ' rc-done' : '');
-      it.innerHTML = '<button class="rc-btn rc-mini"></button><div class="rc-sec"></div><div class="rc-text"></div>';
+      it.innerHTML = '<button class="rc-btn rc-mini"></button><div class="rc-sec"></div>' +
+        (c.quote ? '<div class="rc-quote"></div>' : '') + '<div class="rc-text"></div>';
       it.querySelector('.rc-sec').textContent = c.section + ' \u00b7 ' + c.kind + ' ' + c.n;
+      if (c.quote) it.querySelector('.rc-quote').textContent = c.quote;
       it.querySelector('.rc-text').textContent = c.text;
       var mb = it.querySelector('.rc-mini');
       mb.textContent = c.resolved ? 'Reopen' : 'Resolve';
@@ -253,13 +281,14 @@ document.addEventListener('DOMContentLoaded', function () {
       if (c.label) out.push(':LABEL: ' + c.label);
       out.push(':CREATED: ' + c.created);
       if (c.resolved) out.push(':RESOLVED: ' + c.resolved);
+      if (c.quote) out.push(':SELECTED: yes');
       out.push(':END:');
-      out.push('#+begin_quote'); out.push(c.snippet); out.push('#+end_quote');
+      out.push('#+begin_quote'); out.push(c.quote || c.snippet); out.push('#+end_quote');
       out.push(''); out.push(c.text); out.push('');
     });
     out.push('# rc-json: ' + JSON.stringify(list.map(function (c) {
       return { section: c.section, kind: c.kind, n: c.n, label: c.label, snippet: c.snippet,
-               text: c.text, created: c.created, updated: c.updated, resolved: c.resolved }; })));
+               quote: c.quote, text: c.text, created: c.created, updated: c.updated, resolved: c.resolved }; })));
     return out.join('\n') + '\n';
   }
 
@@ -307,6 +336,78 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     };
     inp.click();
+  }
+
+  // Comment on a selection: selected text inside one commentable block gets
+  // a Comment button; the comment anchors to the block as usual and keeps
+  // the selection as its quote.
+  var qbtn = document.createElement('button');
+  qbtn.className = 'rc-qbtn'; qbtn.type = 'button'; qbtn.textContent = 'Comment';
+  qbtn.title = 'Comment on the selected text';
+  document.body.appendChild(qbtn);
+  var pending = null;
+  function selection() {
+    var s = window.getSelection();
+    if (!s || !s.rangeCount || s.isCollapsed) return null;
+    var r = s.getRangeAt(0), q = clean(s.toString());
+    if (!q) return null;
+    for (var i = 0; i < anchors.length; i++) {
+      var el = anchors[i].el;
+      if (el.contains(r.startContainer) && el.contains(r.endContainer))
+        return { a: anchors[i], quote: q.slice(0, 500), rect: r.getBoundingClientRect() };
+    }
+    return null;
+  }
+  var selTimer = null;
+  document.addEventListener('selectionchange', function () {
+    clearTimeout(selTimer);
+    selTimer = setTimeout(function () {
+      pending = selection();
+      if (!pending) { qbtn.style.display = 'none'; return; }
+      qbtn.style.display = 'block';
+      var left = Math.min(pending.rect.right + window.scrollX + 4,
+                          window.scrollX + document.documentElement.clientWidth - qbtn.offsetWidth - 8);
+      qbtn.style.left = Math.max(window.scrollX + 4, left) + 'px';
+      qbtn.style.top = (pending.rect.bottom + window.scrollY + 4) + 'px';
+    }, 150);
+  });
+  qbtn.addEventListener('mousedown', function (e) { e.preventDefault(); });
+  qbtn.onclick = function () {
+    var p = pending || selection();
+    qbtn.style.display = 'none'; pending = null;
+    if (!p) return;
+    window.getSelection().removeAllRanges();
+    openBox(p.a, null, p.quote);
+  };
+
+  // The quotes of open comments are highlighted where they still occur in
+  // their block, without touching the DOM (CSS Custom Highlight API).
+  function locate(el, q) {
+    var s = '', map = [];
+    var w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+    for (var n = w.nextNode(); n; n = w.nextNode()) {
+      if (n.parentElement && n.parentElement.closest('.rc-add, .rc-marker, .rc-box')) continue;
+      for (var i = 0; i < n.data.length; i++) {
+        var ch = n.data[i];
+        if (/\s/.test(ch)) { if (!s || s[s.length - 1] === ' ') continue; ch = ' '; }
+        s += ch; map.push([n, i]);
+      }
+    }
+    var at = s.indexOf(q);
+    if (at < 0) return null;
+    var r = document.createRange(), end = map[at + q.length - 1];
+    r.setStart(map[at][0], map[at][1]); r.setEnd(end[0], end[1] + 1);
+    return r;
+  }
+  function highlight() {
+    if (!window.CSS || !CSS.highlights || typeof Highlight === 'undefined') return;
+    var ranges = [];
+    comments.forEach(function (c) {
+      if (c.resolved || !c.quote || !c._a) return;
+      var r = locate(c._a.el, c.quote);
+      if (r) ranges.push(r);
+    });
+    CSS.highlights.set('rc-quote', new (Function.prototype.bind.apply(Highlight, [null].concat(ranges)))());
   }
 
   render();
