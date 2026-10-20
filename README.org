@@ -244,7 +244,11 @@ Every exported page carries a comment layer: hover in the right margin of
 any paragraph, block or figure and click =+=.  Comments are kept in the
 browser (localStorage, per page) and anchored by section title, block kind
 and a text snippet, so they survive re-rendering; a comment whose text was
-rewritten shows as "anchor not found".  The Comments button opens the panel:
+rewritten shows as "anchor not found".  To comment on particular words,
+select them within one block and click the /Comment/ button that appears:
+the comment is anchored to the block in the same way and keeps the selection
+as its quote, highlighted on the page while the comment is open.  The
+Comments button opens the panel:
 - *Copy open* puts the open comments on the clipboard as org TODOs, then
   offers to mark them resolved;
 - *Export .org* downloads all of them (TODO/DONE) and *Import* reads such a
