@@ -154,6 +154,11 @@ replace the aggregate document with index links. Check the run plan with
 - *Explanations in prose, not in code.*  No explanatory comments or
   docstrings in tangled blocks; the paragraph above the block says why.
   Only what the code needs functionally (e.g. a =__doc__= used by argparse).
+- *Readable names.*  Variables and functions are named for what they hold
+  (=noise_var=, not =nv=); single letters only where conventional or where
+  they are an equation's symbols, and then defined in the prose beside
+  the block.  Code brought in from elsewhere is renamed when it becomes
+  the note's code.
 - *Plain prose.*  Write a note the way you would explain the analysis to a
   colleague: what we want to know and why, what we did, what we found.
   Short sentences with one idea each, no chains of semicolons and nested

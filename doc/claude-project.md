@@ -278,6 +278,17 @@ a clause refers to, split it.
   explanatory comments or docstrings in tangled blocks; the paragraph above
   the block explains. Keep only what the code needs to work (e.g. a
   `__doc__` that argparse prints).
+- **Readable names in the code.** Name variables, functions and arguments
+  for what they hold (`noise_var`, `taua_gain`, `pointing_rot`), not with
+  single letters or abbreviations (`g`, `sg`, `nv`, `r0`). A reader of the
+  page should follow a block without tracing where each name came from.
+  Short names are fine where they are conventional in the field or the
+  library (`tod`, `xi`, `eta`, `ra`, `dec`) or where they are the symbols
+  of an equation in the prose; then define them in the prose next to the
+  block and connect each symbol to its code name. Loop indices and
+  throwaway values in a one-line expression can stay short. Code brought
+  in from elsewhere is renamed when it becomes the note's code; check that
+  its outputs are unchanged.
 - **Interleave explanation and implementation.** Choose block boundaries
   by conceptual responsibility, rather than mechanically splitting at every
   function or preserving source-file order. Put the rationale beside the
