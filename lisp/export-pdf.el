@@ -56,7 +56,9 @@
 \\lstset{basicstyle=\\ttfamily\\footnotesize, breaklines=true, breakatwhitespace=false,
   columns=fullflexible, keepspaces=true, showstringspaces=false, upquote=true,
   backgroundcolor=\\color{notebg}, frame=none, xleftmargin=0.5em, xrightmargin=0.5em,
-  aboveskip=0.4em, belowskip=0.8em, postbreak=\\mbox{\\textcolor{gray}{$\\hookrightarrow$}\\space}}
+  aboveskip=0.4em, belowskip=0.8em,
+  keywordstyle=\\color{notelabel}\\bfseries, commentstyle=\\color{gray}\\itshape,
+  stringstyle=\\color{noterun}, identifierstyle=\\color{black}, postbreak=\\mbox{\\textcolor{gray}{$\\hookrightarrow$}\\space}}
 \\setlength{\\parskip}{0.5em}
 \\setlength{\\parindent}{0pt}
 \\setlength{\\emergencystretch}{3em}"
@@ -71,15 +73,19 @@
 (defun note/latex-escape (text)
   (org-latex--protect-text (org-latex-plain-text text nil)))
 
-(defun note/listing (code size)
-  (format "\\begin{lstlisting}[basicstyle=\\ttfamily%s]\n%s\\end{lstlisting}\n" size code))
+(defun note/listing (code size &optional language)
+  (let ((lst (cdr (assoc language '(("python" . "Python") ("sh" . "bash") ("bash" . "bash")
+                                    ("emacs-lisp" . "Lisp") ("elisp" . "Lisp") ("c" . "C")
+                                    ("c++" . "C++") ("sql" . "SQL"))))))
+    (format "\\begin{lstlisting}[basicstyle=\\ttfamily%s%s]\n%s\\end{lstlisting}\n"
+            size (if lst (concat ",language=" lst) "") code)))
 
 (defun note/latex-src (_orig src-block _contents info)
   (let* ((params (org-element-property :parameters src-block))
          (target (note/param params "tangle"))
          (run (note/param params "run"))
          (code (org-export-format-code-default src-block info))
-         (listing (note/listing code "\\footnotesize")))
+         (listing (note/listing code "\\footnotesize" (org-element-property :language src-block))))
     (cond
      ((and (stringp target) (not (member target '("no" "yes"))))
       (concat (note/latex-label "notelabel" (concat "$\\rightarrow$ \\texttt{"
