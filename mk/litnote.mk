@@ -8,6 +8,7 @@
 #
 #   make                 notes + readme -> $(OUTDIR) (default out/notes)
 #   make out/notes/X.html               one file
+#   make out/notes/X.pdf                one file as a self-contained PDF (XeLaTeX)
 #   make check           blocks with no output, stale excerpts, rebinds
 #   make tangle          write every :tangle block out to its file
 #   make check-tangled   every CODE file is tangled from a note, none hand-edited
@@ -42,6 +43,7 @@ LN_BATCH  = $(EMACS) -Q --batch -l $(LITNOTE)/lisp/export-note.el \
 # keeps its directory like note/ and analysis/.
 LEGACY_FLAT ?= yes
 ln_flat  = $(filter yes,$(LEGACY_FLAT))
+ln_pdf   = $(patsubst %.html,%.pdf,$(call ln_html,$(1)))
 ln_html  = $(OUTDIR)/$(if $(ln_flat),$(patsubst notes/%,%,$(1:.org=.html)),$(1:.org=.html))
 HTML    := $(foreach s,$(SRC),$(call ln_html,$(s)))
 
@@ -69,6 +71,23 @@ $(call ln_html,$(1)): $(1) $(LN_EL) $(LN_POST) $(LN_CHECK) | $(OUTDIR)
 	$$(PYTHON) $(LITNOTE)/py/inline-images.py $$@
 endef
 $(foreach s,$(SRC),$(eval $(call ln_export_rule,$(s))))
+
+# PDF of one document (lisp/export-pdf.el): org writes X.tex next to the
+# source, latexmk -xelatex builds it in a scratch folder under $(OUTDIR), and
+# the PDF moves beside the HTML.  Not part of `make': ask for the file.
+LN_PDF_EL := $(LITNOTE)/lisp/export-pdf.el $(LITNOTE)/lisp/export-note.el
+define ln_pdf_rule
+$(call ln_pdf,$(1)): $(1) $(LN_PDF_EL) | $(OUTDIR)
+	$$(EMACS) -Q --batch -l $(LITNOTE)/lisp/export-pdf.el \
+	  --eval '(setq note/legacy-flat $(if $(ln_flat),t,nil))' --eval '(note/export-latex "$(1)")'
+	mkdir -p $(OUTDIR)/pdf-build/$(dir $(1)) $$(dir $$@)
+	latexmk -xelatex -interaction=nonstopmode -halt-on-error \
+	  -outdir=$(OUTDIR)/pdf-build/$(dir $(1)) $(basename $(1)).tex > $(OUTDIR)/pdf-build/$(basename $(1)).latexmk.txt 2>&1 \
+	  || { tail -20 $(OUTDIR)/pdf-build/$(basename $(1)).log; exit 1; }
+	mv $(OUTDIR)/pdf-build/$(basename $(1)).pdf $$@
+	rm -f $(basename $(1)).tex
+endef
+$(foreach s,$(SRC),$(eval $(call ln_pdf_rule,$(s))))
 
 # The review document #+INCLUDEs the other notes, so it is stale when any changes.
 ifdef REVIEW

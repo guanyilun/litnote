@@ -153,7 +153,10 @@ Every change to a tangled step goes around this loop:
    result comes from reviewed code. Mark a cell `:run manual` if it must not be
    rerun automatically.
 7. **Render and check.** `make` renders `out/notes/` HTML files and warns about
-   blocks with no output. `make check-tangled` must say *all tangled and in
+   blocks with no output.  `make out/notes/<doc>.pdf` also renders one
+   document as a self-contained PDF (XeLaTeX), for readers outside the
+   project: frames and swipe pairs print as stacked images, so drop links
+   to unshared documents before sending it. `make check-tangled` must say *all tangled and in
    sync*; if it reports `EDITED` or `NOT TANGLED`, move the change into a
    document. This checks that code is available in the review source, not that
    a reader has reviewed or understood it.
