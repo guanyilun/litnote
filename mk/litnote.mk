@@ -105,9 +105,10 @@ list:
 clean:
 	rm -rf $(OUTDIR)
 
+# Atomic: each note is tangled into a scratch tree and every changed file renamed over its target
+# (py/tangle-atomic.py), so no target is ever missing or half-written for other sessions or running jobs.
 tangle:
-	@for f in $(NOTES); do \
-	  $(EMACS) -Q --batch -l org --eval "(org-babel-tangle-file \"$$f\")" 2>&1 | grep -v "^Loading"; done
+	@EMACS=$(EMACS) $(PYTHON) $(LITNOTE)/py/tangle-atomic.py $(NOTES)
 
 check-tangled:
 	@$(PYTHON) $(LITNOTE)/py/check-tangled.py $(CODE)
