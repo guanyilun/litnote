@@ -110,9 +110,9 @@ tangle one script for its batch job and include that job's report.
 Every change to a tangled step goes around this loop:
 
 1. **Write the note.** A paragraph saying what the step does and why, then
-   the code, bare, with an absolute `:tangle` path:
+   the code, bare, with a `:tangle` path relative to the document:
    ```org
-   #+begin_src python :tangle /abs/project/bin/fit.py
+   #+begin_src python :tangle ../bin/fit.py
    ```
    Start with the problem and conceptual overview, then refine meaningful
    components beside their explanations. Use named Noweb chunks when the
@@ -129,7 +129,7 @@ Every change to a tangled step goes around this loop:
    python bin/fit.py --group all > out/fit/summary.txt
    #+end_src
 
-   #+INCLUDE: "/abs/project/out/fit/summary.txt" example
+   #+INCLUDE: "../out/fit/summary.txt" example
    ```
    Figures go in after the run that saved them, each with a name and a
    caption that describes what is plotted (see "Figures are explained like
@@ -137,7 +137,7 @@ Every change to a tangled step goes around this loop:
    ```org
    #+NAME: fig:residuals
    #+CAPTION: /Residuals of the fit./  ...
-   [[file:/abs/project/out/fit/residuals.png]]
+   [[file:../out/fit/residuals.png]]
    ``` The export labels these cells `→ path`,
    `▶ run (where)` and `output`, so the page reads as an executed notebook.
 5. **Write the prose from the output.** Every number in the text comes from
@@ -234,8 +234,8 @@ the full presentation requirements while exploration is ongoing.
     scientific results are not.
   Use a few colors, readable labels, arrows with clear meaning, and a
   layout readable at page width. Introduce each figure in the argument and
-  explain the connection it helps the reader see. Use absolute image paths
-  in Org so the current export pipeline can inline them after moving HTML.
+  explain the connection it helps the reader see. Write image paths
+  relative to the document; the export inlines them after moving the HTML.
 - **Figures are explained like in a paper: the caption describes, the
   text interprets.** Every figure has a `#+NAME: fig:x` and a `#+CAPTION:`;
   org numbers them, and the text cites them as `Figure [[fig:x]]`, which
@@ -252,13 +252,13 @@ the full presentation requirements while exploration is ongoing.
   - Don't leave a figure's explanation to a separate "how to read"
     paragraph; the encoding belongs in the caption.
   - When one figure varies with a parameter, make it one figure with
-    frames instead of many figures: `#+ATTR_HTML: :data-frames /abs/b.png
-    /abs/c.png :data-labels a = 0|a = 1|a = 2` (no quotes; labels joined by
+    frames instead of many figures: `#+ATTR_HTML: :data-frames ../out/b.png
+    ../out/c.png :data-labels a = 0|a = 1|a = 2` (no quotes; labels joined by
     `|`, the image itself first). The reader steps through them with j / k.
     The caption says what the frames are.
   - To compare two images of the same layout, such as a measured map and
     a reference, stack them with a draggable divider:
-    `#+ATTR_HTML: :data-swipe /abs/other.png :data-swipe-labels a|b`.
+    `#+ATTR_HTML: :data-swipe ../out/other.png :data-swipe-labels a|b`.
     Left of the divider is the figure's own image, right of it the other;
     the reader drags it, or clicks and uses the arrow keys. With
     `:data-frames`, `:data-swipe` lists one image per frame. The caption
@@ -387,7 +387,7 @@ paragraph it was left on.
   short outline block (`:noweb yes`) whose indented `<<name>>` lines expand
   with that indentation:
   ```org
-  #+begin_src python :tangle /abs/project/bin/fit.py :noweb yes
+  #+begin_src python :tangle ../bin/fit.py :noweb yes
   class Model:
       <<model-init>>
 
@@ -403,6 +403,12 @@ paragraph it was left on.
   script.
 - **Environment.** Build under the project's environment; the pygments
   version changes the highlighted HTML.
+- **Paths are relative to the document.** Write `:tangle`, `#+INCLUDE`,
+  image and `:data-frames` paths relative to the `.org` file that holds
+  them (`../src/x.py` from `note/`), so that the project works from any
+  checkout and can be shared. Run cells already run in the project root;
+  don't `cd` to an absolute path in them. Absolute paths still work, but
+  tie the project to one machine.
 - **Dates.** Write absolute dates in notes and `readme.org`, not "today" or
   "yesterday".
 

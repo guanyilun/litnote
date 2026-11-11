@@ -68,7 +68,7 @@ $(call ln_html,$(1)): $(1) $(LN_EL) $(LN_POST) $(LN_CHECK) | $(OUTDIR)
 	mkdir -p $$(dir $$@)
 	mv $(basename $(1)).html $$@
 	$$(PYTHON) $(LITNOTE)/py/highlight-html.py $$@
-	$$(PYTHON) $(LITNOTE)/py/inline-images.py $$@
+	$$(PYTHON) $(LITNOTE)/py/inline-images.py --source-dir $(or $(dir $(1)),.) $$@
 endef
 $(foreach s,$(SRC),$(eval $(call ln_export_rule,$(s))))
 

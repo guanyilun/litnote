@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
 """Rewrite <img src="..."> in an exported HTML file as base64 data URIs.
 
-Org emits absolute paths for the ``[[file:/.../plot.png]]`` results, which
-only resolve on this machine.  Inlining makes the .html a single
-self-contained file that survives being copied or emailed.
+Image paths in a note resolve only where the note is: an absolute path only
+on this machine, a relative one only next to the note's source.  Inlining
+makes the .html a single self-contained file that survives being copied or
+emailed.
 
-    $LITNOTE/py/inline-images.py out/notes/x.html
+    $LITNOTE/py/inline-images.py [--source-dir DIR] out/notes/x.html
+
+A relative path is taken relative to DIR, the directory of the .org file the
+page was exported from (the page itself has been moved to out/notes/), and
+then relative to the page.
 """
 import base64
 import mimetypes
@@ -18,10 +23,10 @@ FRAMES = re.compile(r'(<img\b[^>]*?\bdata-frames=")([^"]+)(")', re.I)
 SWIPE = re.compile(r'(<img\b[^>]*?\bdata-swipe=")([^"]+)(")', re.I)
 
 
-def main(path):
+def main(path, source_dir=None):
     with open(path, encoding='utf-8') as f:
         html = f.read()
-    base = os.path.dirname(os.path.abspath(path))
+    bases = ([os.path.abspath(source_dir)] if source_dir else []) + [os.path.dirname(os.path.abspath(path))]
     n_ok = n_miss = 0
     missing = []
 
@@ -32,7 +37,8 @@ def main(path):
             return m.group(0)
         p = src[7:] if src.startswith('file://') else src
         if not os.path.isabs(p):
-            p = os.path.join(base, p)
+            p = next((os.path.join(b, p) for b in bases if os.path.isfile(os.path.join(b, p))),
+                     os.path.join(bases[0], p))
         if not os.path.isfile(p):
             n_miss += 1
             missing.append(src)
@@ -70,6 +76,10 @@ def main(path):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
+    args = sys.argv[1:]
+    source_dir = None
+    if args[:1] == ['--source-dir'] and len(args) == 3:
+        source_dir, args = args[1], args[2:]
+    if len(args) != 1:
         sys.exit(__doc__)
-    sys.exit(main(sys.argv[1]))
+    sys.exit(main(args[0], source_dir))

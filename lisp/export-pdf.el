@@ -116,14 +116,27 @@ characters at footnotesize, 114 at scriptsize, 160 at tiny."
 (advice-add 'org-latex-example-block :around #'note/latex-example)
 (advice-add 'org-latex-fixed-width :around #'note/latex-example)
 
+(defun note/absolute-image (path info)
+  "PATH made absolute against the directory of the note being exported.
+LaTeX runs from the project root, so a path relative to the note would
+otherwise resolve against the wrong directory."
+  (if (file-name-absolute-p path)
+      path
+    (expand-file-name path (file-name-directory (plist-get info :input-file)))))
+
 (defun note/latex-frames (orig link info)
-  "A figure with frames or a swipe pair: every image, stacked and labelled."
-  (let* ((figure (funcall orig link info))
+  "A figure with frames or a swipe pair: every image, stacked and labelled.
+Relative image paths are made absolute first (`note/absolute-image')."
+  (let* ((absolute (org-element-copy link))
+         (_ (org-element-put-property absolute :path
+                                      (note/absolute-image (org-element-property :path link) info)))
+         (figure (funcall orig absolute info))
          (attr (org-export-read-attribute :attr_html (org-export-get-parent-element link)))
          (frames (plist-get attr :data-frames))
          (swipe (plist-get attr :data-swipe))
-         (images (cond (frames (cons (org-element-property :path link) (split-string frames " " t)))
-                       (swipe (cons (org-element-property :path link) (split-string swipe " " t)))))
+         (absolutes (lambda (list) (mapcar (lambda (p) (note/absolute-image p info)) (split-string list " " t))))
+         (images (cond (frames (cons (org-element-property :path absolute) (funcall absolutes frames)))
+                       (swipe (cons (org-element-property :path absolute) (funcall absolutes swipe)))))
          (labels (split-string (or (plist-get attr (if frames :data-labels :data-swipe-labels)) "") "|")))
     (if (and images (string-match "\\\\includegraphics\\(\\[[^]]*\\]\\)?{[^}]*}" figure))
         (let ((options (format "[width=\\linewidth,height=%.2f\\textheight,keepaspectratio]"

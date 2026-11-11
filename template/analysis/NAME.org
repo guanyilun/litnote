@@ -17,7 +17,7 @@ assertions also run on import in this small example. For a larger library,
 put automated checks in a separately tangled test module.
 
 #+name: compare-measurements
-#+begin_src python :tangle @PROJ@/bin/example.py :eval no
+#+begin_src python :tangle ../bin/example.py :eval no
 import sys
 from pathlib import Path
 
@@ -37,7 +37,7 @@ used for expensive steps. Run from the project root after =make tangle=.
 mkdir -p out/example && python bin/example.py > out/example/example.txt
 #+end_src
 
-#+INCLUDE: "@PROJ@/out/example/example.txt" example
+#+INCLUDE: "../out/example/example.txt" example
 
 * Interpretation and next questions
 

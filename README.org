@@ -98,7 +98,7 @@ Expensive steps go around this loop:
 #+end_example
 
 1. *Write* a step in a note: a paragraph saying what and why, then the code
-   in bare blocks with =:tangle /abs/path=. Refine meaningful concepts
+   in bare blocks with =:tangle ../bin/x.py= (relative to the document). Refine meaningful concepts
    beside their explanations, using named chunks to assemble source order.
 2. *Tangle* (=make tangle=) and *run* the script outside Emacs; it writes a
    report file (and figures) under =out/=.
@@ -177,7 +177,8 @@ replace the aggregate document with index links. Check the run plan with
   version control and outside analysis =CODE= globs. Result-producing code
   still follows the analysis workflow. Each figure has a =#+NAME:= and
   =#+CAPTION:=; introduce it in the prose and explain the connection it
-  reveals. Use absolute image paths for inlining in the current exporter.
+  reveals. Write image paths relative to the document; the export
+  inlines them.
 - *Refine ideas with Noweb.* An outline with =:noweb yes= names meaningful
   components, such as =<<validate measurements>>=. Each is a named block
   with no =:tangle= and =:eval no= for source fragments, beside its
@@ -186,12 +187,13 @@ replace the aggregate document with index links. Check the run plan with
   extraction; avoid needless fragmentation. Reusable behavior belongs in
   library functions, whose implementations can themselves use chunks.
 - *Header.*  =#+PROPERTY: header-args :mkdirp yes :comments link :eval no=,
-  absolute =:tangle= paths.  Use =:comments no= on blocks whose language
+  =:tangle= paths relative to the document, so the project works from any
+  checkout.  Use =:comments no= on blocks whose language
   Emacs =-Q= has no comment syntax for (YAML), or the link line corrupts the
   file.
 - *Runs read as cells.*  A run is a =#+begin_src sh :run <where> :eval no=
   block holding the exact command, which writes a report file, followed by
-  =#+INCLUDE: "/abs/path/report.txt" example=.  Never paste output by hand.
+  =#+INCLUDE: "../out/report.txt" example=.  Never paste output by hand.
   Figures: =[[file:...png]]= after the run that saved them, with a
   =#+NAME: fig:x= and a =#+CAPTION:= written like a paper's.  The caption
   only describes what is plotted (data, selection, axes, units, colours,
@@ -221,7 +223,7 @@ set =OUTDIR= to render elsewhere.  Legacy =notes/x.org= renders flat to
   after a run, or a =#+RESULTS:=, =output=.  A block that a =:noweb= outline
   includes is labelled =⟨name⟩ in → path=; each =<<name>>= in the outline
   links to it, and the name in its label links back to the outline.
-- A figure can have frames: =#+ATTR_HTML: :data-frames /abs/b.png /abs/c.png
+- A figure can have frames: =#+ATTR_HTML: :data-frames ../out/b.png ../out/c.png
   :data-labels first|second|third= on its image (no quotes; labels joined
   by =|=, the image itself first).  The frames are inlined with the image,
   and =j= / =k= (or the buttons under it) step the figure nearest the middle

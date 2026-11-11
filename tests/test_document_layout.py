@@ -102,5 +102,22 @@ class DocumentLayoutTests(unittest.TestCase):
             self.assertIn('href="../notes/b.html"', (root / 'out/html/note/a.html').read_text())
             self.assertIn('href="../note/a.html"', (root / 'out/html/notes/b.html').read_text())
 
+    def test_inline_images_resolves_paths_relative_to_the_source(self):
+        inliner = module('inline-images')
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / 'note').mkdir()
+            (root / 'out/fig').mkdir(parents=True)
+            (root / 'out/notes/note').mkdir(parents=True)
+            (root / 'out/fig/a.png').write_bytes(b'png-a')
+            (root / 'out/fig/b.png').write_bytes(b'png-b')
+            page = root / 'out/notes/note/x.html'
+            page.write_text('<img src="../out/fig/a.png" data-frames="../out/fig/b.png">')
+            inliner.main(str(page), str(root / 'note'))
+            html = page.read_text()
+            self.assertNotIn('../out/fig', html)
+            self.assertEqual(html.count('data:image/png;base64,'), 2)
+
+
 if __name__ == '__main__':
     unittest.main()

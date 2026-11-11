@@ -25,7 +25,7 @@ This keeps the answer in the original measurement units.
 #+CAPTION: uncertainty sigma produce a precision w = 1/sigma squared and a
 #+CAPTION: weighted contribution w x. The contributions and precisions are
 #+CAPTION: summed separately, then their ratio gives the combined estimate.
-[[file:@PROJ@/diagrams/weighted-mean.svg]]
+[[file:../diagrams/weighted-mean.svg]]
 
 * The governing idea
 
@@ -48,7 +48,7 @@ order; the sections below explain the estimator before its input checks.
 Source fragments are not evaluated independently in the session.
 
 #+name: complete-program
-#+begin_src python :tangle @PROJ@/src/estimators.py :eval no :noweb yes
+#+begin_src python :tangle ../src/estimators.py :eval no :noweb yes
 import math
 
 
